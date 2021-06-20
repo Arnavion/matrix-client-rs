@@ -1,0 +1,13 @@
+[package]
+name = "once_cell2"
+version = "0.1.0"
+license = "Apache-2.0"
+authors = ["Arnavion <me@arnavion.dev>"]
+edition = "2018"
+publish = false
+
+
+[dependencies]
+once_cell = { version = "1", default-features = false, features = [
+	"alloc", # for once_cell::race::OnceBox
+] }

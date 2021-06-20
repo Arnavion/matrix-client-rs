@@ -1,3 +1,53 @@
+TUI [Matrix](https://matrix.org/) client in Rust.
+
+
+# Features
+
+- `tmux` windows for rooms.
+- Read-only.
+
+
+# Dependencies
+
+- `tmux` - The TUI framework.
+- `/etc/machine-id` - Used to derive the device ID when logging in.
+
+
+# Usage
+
+1. Build:
+
+   ```sh
+   cargo build --release
+   ```
+
+1. Run:
+
+   ```sh
+   ./target/release/matrix-client <user_id>
+   ```
+
+   Example:
+
+   ```sh
+   ./target/release/matrix-client '@arnavion:arnavion.dev'
+   ```
+
+1. Import E2E keys backup from Element:
+
+   ```sh
+   ./target/release/matrix-client <user_id> config import-e2e-keys-backup ~/Downloads/element.keys.txt
+   ```
+
+
+# TODO
+
+- Send events.
+- Mark events as read on homeserver.
+- Update events for redactions and replace.
+- Custom mouse events to support scrolling into prev batch.
+
+
 # License
 
 ```
