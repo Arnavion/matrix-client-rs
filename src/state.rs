@@ -64,11 +64,13 @@ impl Manager {
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub(crate) struct State {
-	#[serde(default)]
 	pub(crate) access_token: Option<String>,
 
 	#[serde(default)]
 	pub(crate) e2e_keys: std::collections::BTreeMap<String, std::collections::BTreeMap<String, SessionData>>,
+
+	#[serde(default)]
+	pub(crate) secret_storage_keys: std::collections::BTreeMap<String, SecretStorageKey>,
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
@@ -90,4 +92,13 @@ pub(crate) enum SessionData {
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub(crate) struct SessionData_MegolmV1AesSha2_SenderClaimedKeys {
 	ed25519: String,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub(crate) enum SecretStorageKey {
+	#[serde(rename = "passphrase")]
+	Passphrase(String),
+
+	#[serde(rename = "keyfile")]
+	Keyfile(String),
 }

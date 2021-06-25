@@ -28,14 +28,14 @@ pub(crate) struct BackedUpSessionData {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
-	#[error("signature of the backup does not match")]
-	SignatureVerificationFailed(#[source] hmac::crypto_mac::MacError),
-
 	#[error("expected backup to be a JSON blob")]
 	MalformedJson(#[source] serde_json::Error),
 
 	#[error("expected backup to be a PEM blob")]
 	MalformedPem(#[source] pem::PemError),
+
+	#[error("signature of the backup does not match")]
+	SignatureVerificationFailed(#[source] hmac::crypto_mac::MacError),
 
 	#[error("backup is truncated")]
 	Truncated,
@@ -63,13 +63,11 @@ impl Backup<'_> {
 			Backup::V1 { salt, iv, rounds, ciphertext, hmac } => {
 				let mut key = [0_u8; 64];
 				pbkdf2::pbkdf2::<hmac::Hmac<sha2::Sha512>>(password.as_bytes(), salt, rounds, &mut key);
-				let decrypt_key: &[u8; 32] = std::convert::TryInto::try_into(&key[..32]).expect("statically guaranteed");
 
-				let stream_cipher: aes::Aes256 = aes::NewBlockCipher::new_from_slice(decrypt_key).unwrap();
+				let stream_cipher: aes::Aes256 = aes::NewBlockCipher::new(key[..32].into());
 				let mut stream_cipher: aes::Aes256Ctr = aes::cipher::FromBlockCipher::from_block_cipher(stream_cipher, iv.into());
 
-				let mac_key = std::convert::TryInto::try_into(&key[32..]).expect("statically guaranteed");
-				let mut mac: hmac::Hmac<sha2::Sha256> = hmac::NewMac::new_from_slice(mac_key).unwrap();
+				let mut mac: hmac::Hmac<sha2::Sha256> = hmac::NewMac::new_from_slice(&key[32..]).expect("Hmac::new_from_slice accepts any key length");
 
 				hmac::Mac::update(&mut mac, &[1]);
 				hmac::Mac::update(&mut mac, &salt[..]);

@@ -5,9 +5,11 @@
 	clippy::similar_names,
 	clippy::let_underscore_drop,
 	clippy::let_unit_value,
+	clippy::shadow_unrelated,
 	clippy::too_many_lines,
 )]
 
+mod aes_hmac_sha2;
 mod controller;
 mod e2e_keys_backup;
 mod http_client;
@@ -37,6 +39,7 @@ enum Command {
 	#[structopt(name = "_view", setting = structopt::clap::AppSettings::Hidden)]
 	View {
 		room_id: String,
+
 		lines: std::path::PathBuf,
 	},
 }
@@ -45,6 +48,17 @@ enum Command {
 enum ConfigOptions {
 	ImportE2EKeysBackup {
 		filename: std::path::PathBuf,
+	},
+
+	#[structopt(group = structopt::clap::ArgGroup::with_name("import_secret_storage_key_type").required(true))]
+	ImportSecretStorageKey {
+		id: String,
+
+		#[structopt(group = "import_secret_storage_key_type", long)]
+		passphrase: Option<String>,
+
+		#[structopt(group = "import_secret_storage_key_type", long)]
+		keyfile: Option<String>,
 	},
 
 	Logout,
@@ -92,6 +106,27 @@ fn main() -> anyhow::Result<()> {
 			let _ = writeln!(stderr, "Done.");
 		},
 
+		Some(Command::Config { options: ConfigOptions::ImportSecretStorageKey { id, passphrase, keyfile } }) => {
+			use std::io::Write;
+
+			let mut state_manager = crate::state::Manager::new(&user_id).context("could not create state manager")?;
+			let mut state = state_manager.load().context("could not load state")?;
+
+			let stderr = std::io::stderr();
+			let mut stderr = stderr.lock();
+
+			if let Some(passphrase) = passphrase {
+				state.secret_storage_keys.insert(id, state::SecretStorageKey::Passphrase(passphrase));
+			}
+			else if let Some(keyfile) = keyfile {
+				state.secret_storage_keys.insert(id, state::SecretStorageKey::Keyfile(keyfile));
+			}
+
+			let () = state_manager.save(&state).context("could not save state")?;
+
+			let _ = writeln!(stderr, "Done.");
+		},
+
 		Some(Command::Config { options: ConfigOptions::Logout }) => {
 			use std::io::Write;
 
@@ -121,6 +156,10 @@ fn main() -> anyhow::Result<()> {
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 enum RoomViewLine {
+	AccountData {
+		account_data: crate::SyncResponse_AccountData,
+	},
+
 	Summary {
 		summary: SyncResponse_RoomSummary,
 	},
@@ -167,6 +206,19 @@ struct SyncResponse_RoomEvent {
 	sender: String,
 	r#type: String,
 	unsigned: Option<serde_json::Map<String, serde_json::Value>>,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+struct SyncResponse_AccountData {
+	events: Vec<SyncResponse_AccountData_Event>,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+struct SyncResponse_AccountData_Event {
+	content: serde_json::Map<String, serde_json::Value>,
+	r#type: String,
 }
 
 macro_rules! define_events {
@@ -282,4 +334,124 @@ struct Event_M_Room_Message_Content_Other {
 	msgtype: Option<String>,
 	content: serde_json::Map<String, serde_json::Value>,
 	unsigned: Option<serde_json::Map<String, serde_json::Value>>,
+}
+
+macro_rules! define_account_data_events {
+	(
+		$(
+			$s:literal => $ident:ident { $($field_name:ident : $field_ty:ty),* },
+		)*
+	) => {
+		#[allow(non_camel_case_types)]
+		enum AccountDataEvent {
+			$($ident { $($field_name : $field_ty ,)* },)*
+
+			M_SecretStorage_Key {
+				id: String,
+				description: KeyDescription,
+			},
+
+			Unknown {
+				#[allow(unused)]
+				r#type: String,
+				#[allow(unused)]
+				content: serde_json::Map<String, serde_json::Value>,
+			},
+		}
+
+		impl AccountDataEvent {
+			fn parse(
+				r#type: String,
+				content: serde_json::Map<String, serde_json::Value>,
+			) -> Result<Self, serde_json::Error> {
+				Ok(match &*r#type {
+					$(
+						$s => {
+							#[derive(serde::Deserialize)]
+							struct Content {
+								$($field_name : $field_ty ,)*
+							}
+
+							let Content { $($field_name),* } = serde::Deserialize::deserialize(serde_json::Value::Object(content))?;
+							AccountDataEvent::$ident { $($field_name),* }
+						},
+					)*
+
+					_ => match r#type.strip_prefix("m.secret_storage.key.") {
+						Some(key_id) => {
+							let description = serde::Deserialize::deserialize(serde_json::Value::Object(content))?;
+							AccountDataEvent::M_SecretStorage_Key {
+								id: key_id.to_owned(),
+								description,
+							}
+						},
+
+						None => AccountDataEvent::Unknown { r#type, content },
+					},
+				})
+			}
+		}
+	};
+}
+
+define_account_data_events! {
+	"m.secret_storage.default_key" => M_SecretStorage_DefaultKey { key: String },
+	// "m.cross_signing.master" => M_CrossSigning_Master { encrypted: std::collections::BTreeMap<String, Secret> },
+	// "m.cross_signing.self_signing" => M_CrossSigning_SelfSigning { encrypted: std::collections::BTreeMap<String, Secret> },
+	// "m.cross_signing.user_signing" => M_CrossSigning_UserSigning { encrypted: std::collections::BTreeMap<String, Secret> },
+	"m.megolm_backup.v1" => M_MegolmBackup_V1 { encrypted: std::collections::BTreeMap<String, Secret> },
+}
+
+#[derive(serde::Deserialize)]
+struct KeyDescription {
+	#[serde(flatten)]
+	algorithm: KeyDescription_Algorithm,
+	name: Option<String>,
+	passphrase: Option<KeyDescription_Passphrase>,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(serde::Deserialize)]
+#[serde(tag = "algorithm")]
+enum KeyDescription_Algorithm {
+	#[serde(rename = "m.secret_storage.v1.aes-hmac-sha2")]
+	AesHmacSha2 {
+		iv: String,
+		mac: String,
+	},
+}
+
+#[allow(non_camel_case_types)]
+#[derive(serde::Deserialize)]
+#[serde(tag = "algorithm")]
+enum KeyDescription_Passphrase {
+	#[serde(rename = "m.pbkdf2")]
+	Pbkdf2 {
+		bits: Option<usize>,
+		salt: String,
+		iterations: u32,
+	},
+}
+
+#[derive(serde::Deserialize)]
+struct Secret {
+	#[serde(flatten)]
+	raw: serde_json::Map<String, serde_json::Value>,
+}
+
+#[derive(serde::Deserialize)]
+struct AesHmacSha2Secret {
+	ciphertext: String,
+	iv: String,
+	mac: String,
+}
+
+impl Secret {
+	fn into_aes_hmac_sha2(self) -> anyhow::Result<AesHmacSha2Secret> {
+		let Secret { raw } = self;
+		let secret =
+			serde::Deserialize::deserialize(serde_json::Value::Object(raw))
+			.context("could not reinterpret as m.secret_storage.v1.aes-hmac-sha2")?;
+		Ok(secret)
+	}
 }

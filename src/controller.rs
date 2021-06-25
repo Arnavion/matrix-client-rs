@@ -42,11 +42,18 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 	let mut sync_next_batch = None;
 
+	let mut keys: std::collections::BTreeMap<String, (Option<String>, hkdf::Hkdf<sha2::Sha256>)> = Default::default();
+	#[allow(unused)] // TODO
+	let mut default_key_id = None;
+	#[allow(unused)] // TODO
+	let mut backup_key = None;
+
 	let mut view_fds: std::collections::BTreeMap<String, std::os::unix::io::RawFd> = Default::default();
 
 	loop {
 		#[derive(serde::Deserialize)]
 		struct SyncResponse {
+			account_data: crate::SyncResponse_AccountData,
 			next_batch: String,
 			rooms: SyncResponse_Rooms,
 		}
@@ -61,6 +68,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 		#[allow(non_camel_case_types)]
 		#[derive(serde::Deserialize)]
 		struct SyncResponse_JoinedRoom {
+			account_data: crate::SyncResponse_AccountData,
 			state: SyncResponse_RoomState,
 			summary: crate::SyncResponse_RoomSummary,
 			timeline: SyncResponse_RoomTimeline,
@@ -69,6 +77,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 		#[allow(non_camel_case_types)]
 		#[derive(serde::Deserialize)]
 		struct SyncResponse_LeftRoom {
+			account_data: crate::SyncResponse_AccountData,
 			state: SyncResponse_RoomState,
 			timeline: SyncResponse_RoomTimeline,
 		}
@@ -134,12 +143,78 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 		sync_next_batch = Some(sync.next_batch);
 
+		for crate::SyncResponse_AccountData_Event { r#type, content } in sync.account_data.events {
+			let event = crate::AccountDataEvent::parse(r#type, content).context("could not parse event")?;
+			match event {
+				crate::AccountDataEvent::M_SecretStorage_DefaultKey { key } => {
+					#[allow(unused)] // TODO
+					{
+						default_key_id = Some(key);
+					}
+				},
+
+				crate::AccountDataEvent::M_SecretStorage_Key { id, description: crate::KeyDescription { algorithm, name, passphrase } } => {
+					let mut state = state_manager.load().context("could not load state")?;
+
+					if let Some(secret_storage_key) = state.secret_storage_keys.remove(&id) {
+						let crate::KeyDescription_Algorithm::AesHmacSha2 { iv, mac } = algorithm;
+
+						let key = match (secret_storage_key, passphrase) {
+							(crate::state::SecretStorageKey::Passphrase(state_passphrase), Some(event_passphrase)) => {
+								let crate::KeyDescription_Passphrase::Pbkdf2 { bits, salt, iterations } = event_passphrase;
+								crate::aes_hmac_sha2::derive_key_from_passphrase(
+									state_passphrase.as_bytes(),
+									bits,
+									&salt,
+									iterations,
+									&iv,
+									&mac,
+								).context("could not derive secret storage key from passphrase")?
+							},
+
+							(crate::state::SecretStorageKey::Keyfile(keyfile), _) =>
+								crate::aes_hmac_sha2::derive_key_from_keyfile(keyfile, &iv, &mac).context("could not decode server backup recovery key")?,
+
+							_ => continue,
+						};
+						keys.insert(id, (name, key));
+					}
+				},
+
+				crate::AccountDataEvent::M_MegolmBackup_V1 { encrypted } =>
+					for (key_id, secret) in encrypted {
+						if let Some((_, key)) = keys.get(&key_id) {
+							let crate::AesHmacSha2Secret { ciphertext, iv, mac } =
+								secret.into_aes_hmac_sha2()
+								.context("could not parse m.megolm_backup.v1 secret")?;
+							let mut stream = base64::decode(ciphertext).context("could not parse m.megolm_backup.v1 secret")?;
+							let () =
+								crate::aes_hmac_sha2::decrypt(
+									key,
+									"m.megolm_backup.v1",
+									&mut stream,
+									&iv,
+									&mac,
+								)
+								.context("could not parse m.megolm_backup.v1 secret")?;
+							#[allow(unused)] // TODO
+							{
+								backup_key = Some(base64::decode(&stream).context("could not parse decrypted m.megolm_backup.v1 secret")?);
+							}
+						}
+					},
+
+				crate::AccountDataEvent::Unknown { r#type: _, content: _ } => (),
+			}
+		}
+
 		let mut to_write: std::collections::BTreeMap<String, Vec<crate::RoomViewLine>> = Default::default();
 
 		for (room_id, room) in sync.rooms.join {
 			let lines = to_write.entry(room_id).or_default();
 
 			lines.push(crate::RoomViewLine::Summary { summary: room.summary });
+			lines.push(crate::RoomViewLine::AccountData { account_data: room.account_data });
 
 			for event in room.state.events {
 				lines.push(crate::RoomViewLine::State { event });
@@ -152,6 +227,8 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 		for (room_id, room) in sync.rooms.leave {
 			let lines = to_write.entry(room_id).or_default();
+
+			lines.push(crate::RoomViewLine::AccountData { account_data: room.account_data });
 
 			for event in room.state.events {
 				lines.push(crate::RoomViewLine::State { event });

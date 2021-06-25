@@ -64,6 +64,13 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 		}
 
 		let (origin_server_ts, sender, event) = match line {
+			crate::RoomViewLine::AccountData { account_data } => {
+				if !account_data.events.is_empty() {
+					eprintln!("{}", serde_json::to_string(&account_data).unwrap());
+				}
+				continue;
+			},
+
 			crate::RoomViewLine::Summary { summary } => {
 				if let Some(invited_member_count) = summary.invited_member_count {
 					room_invited_member_count = invited_member_count;
