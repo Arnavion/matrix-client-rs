@@ -122,7 +122,7 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 			},
 
 			crate::Event::M_Room_Create { room_version } => {
-				let _ = writeln!(stdout, "{} created room with version {}", sender, room_version);
+				let _ = writeln!(stdout, "{} created room with version {}", sender, room_version.as_deref().unwrap_or("1"));
 			},
 
 			crate::Event::M_Room_Encrypted { algorithm, ciphertext, device_id, sender_key, session_id } => {
