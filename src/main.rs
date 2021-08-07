@@ -405,9 +405,9 @@ macro_rules! define_account_data_events {
 
 define_account_data_events! {
 	"m.secret_storage.default_key" => M_SecretStorage_DefaultKey { key: String },
-	// "m.cross_signing.master" => M_CrossSigning_Master { encrypted: std::collections::BTreeMap<String, Secret> },
-	// "m.cross_signing.self_signing" => M_CrossSigning_SelfSigning { encrypted: std::collections::BTreeMap<String, Secret> },
-	// "m.cross_signing.user_signing" => M_CrossSigning_UserSigning { encrypted: std::collections::BTreeMap<String, Secret> },
+	"m.cross_signing.master" => M_CrossSigning_Master { encrypted: std::collections::BTreeMap<String, Secret> },
+	"m.cross_signing.self_signing" => M_CrossSigning_SelfSigning { encrypted: std::collections::BTreeMap<String, Secret> },
+	"m.cross_signing.user_signing" => M_CrossSigning_UserSigning { encrypted: std::collections::BTreeMap<String, Secret> },
 	"m.megolm_backup.v1" => M_MegolmBackup_V1 { encrypted: std::collections::BTreeMap<String, Secret> },
 }
 

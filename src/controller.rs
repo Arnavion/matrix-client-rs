@@ -47,6 +47,12 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 	let mut default_key_id = None;
 	#[allow(unused)] // TODO
 	let mut backup_key = None;
+	#[allow(unused)] // TODO
+	let mut cross_signing_master_key = None;
+	#[allow(unused)] // TODO
+	let mut cross_signing_self_signing_key = None;
+	#[allow(unused)] // TODO
+	let mut cross_signing_user_signing_key = None;
 
 	let mut view_fds: std::collections::BTreeMap<String, std::os::unix::io::RawFd> = Default::default();
 
@@ -200,6 +206,75 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 							#[allow(unused)] // TODO
 							{
 								backup_key = Some(base64::decode(&stream).context("could not parse decrypted m.megolm_backup.v1 secret")?);
+							}
+						}
+					},
+
+				crate::AccountDataEvent::M_CrossSigning_Master { encrypted } =>
+					for (key_id, secret) in encrypted {
+						if let Some((_, key)) = keys.get(&key_id) {
+							let crate::AesHmacSha2Secret { ciphertext, iv, mac } =
+								secret.into_aes_hmac_sha2()
+								.context("could not parse m.cross_signing.master secret")?;
+							let mut stream = base64::decode(ciphertext).context("could not parse m.cross_signing.master secret")?;
+							let () =
+								crate::aes_hmac_sha2::decrypt(
+									key,
+									"m.cross_signing.master",
+									&mut stream,
+									&iv,
+									&mac,
+								)
+								.context("could not parse m.cross_signing.master secret")?;
+							#[allow(unused)] // TODO
+							{
+								cross_signing_master_key = Some(base64::decode(&stream).context("could not parse decrypted m.cross_signing.master secret")?);
+							}
+						}
+					},
+
+				crate::AccountDataEvent::M_CrossSigning_SelfSigning { encrypted } =>
+					for (key_id, secret) in encrypted {
+						if let Some((_, key)) = keys.get(&key_id) {
+							let crate::AesHmacSha2Secret { ciphertext, iv, mac } =
+								secret.into_aes_hmac_sha2()
+								.context("could not parse m.cross_signing.self_signing secret")?;
+							let mut stream = base64::decode(ciphertext).context("could not parse m.cross_signing.self_signing secret")?;
+							let () =
+								crate::aes_hmac_sha2::decrypt(
+									key,
+									"m.cross_signing.self_signing",
+									&mut stream,
+									&iv,
+									&mac,
+								)
+								.context("could not parse m.cross_signing.self_signing secret")?;
+							#[allow(unused)] // TODO
+							{
+								cross_signing_self_signing_key = Some(base64::decode(&stream).context("could not parse decrypted m.cross_signing.self_signing secret")?);
+							}
+						}
+					},
+
+				crate::AccountDataEvent::M_CrossSigning_UserSigning { encrypted } =>
+					for (key_id, secret) in encrypted {
+						if let Some((_, key)) = keys.get(&key_id) {
+							let crate::AesHmacSha2Secret { ciphertext, iv, mac } =
+								secret.into_aes_hmac_sha2()
+								.context("could not parse m.cross_signing.user_signing secret")?;
+							let mut stream = base64::decode(ciphertext).context("could not parse m.cross_signing.user_signing secret")?;
+							let () =
+								crate::aes_hmac_sha2::decrypt(
+									key,
+									"m.cross_signing.user_signing",
+									&mut stream,
+									&iv,
+									&mac,
+								)
+								.context("could not parse m.cross_signing.user_signing secret")?;
+							#[allow(unused)] // TODO
+							{
+								cross_signing_user_signing_key = Some(base64::decode(&stream).context("could not parse decrypted m.cross_signing.user_signing secret")?);
 							}
 						}
 					},
