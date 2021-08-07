@@ -146,6 +146,11 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 					let _ = writeln!(stdout, "{} posted image {} {}", sender, body, url);
 				},
 
+				crate::Event_M_Room_Message_Content::Notice(crate::Event_M_Room_Message_Content_Notice { body }) => {
+					let _ = write!(stdout, "<{}> ", sender);
+					print_multiline(&mut stdout, &body);
+				},
+
 				crate::Event_M_Room_Message_Content::Redacted(crate::Event_M_Room_Message_Content_Redacted { redacted_because, redacted_by }) => {
 					let _ = writeln!(stdout, "<{}> <redacted by {}> {:?}", sender, redacted_by.as_deref().unwrap_or("(unknown)"), redacted_because);
 				},

@@ -268,6 +268,8 @@ macro_rules! define_events {
 						let content = match (msgtype.as_deref(), unsigned) {
 							(Some("m.image"), _) => Event_M_Room_Message_Content::Image(serde::Deserialize::deserialize(serde_json::Value::Object(content))?),
 
+							(Some("m.notice"), _) => Event_M_Room_Message_Content::Notice(serde::Deserialize::deserialize(serde_json::Value::Object(content))?),
+
 							(Some("m.text"), _) => Event_M_Room_Message_Content::Text(serde::Deserialize::deserialize(serde_json::Value::Object(content))?),
 
 							(None, Some(unsigned)) => Event_M_Room_Message_Content::Redacted(serde::Deserialize::deserialize(serde_json::Value::Object(unsigned))?),
@@ -304,6 +306,7 @@ define_events! {
 #[allow(non_camel_case_types)]
 enum Event_M_Room_Message_Content {
 	Image(Event_M_Room_Message_Content_Image),
+	Notice(Event_M_Room_Message_Content_Notice),
 	Redacted(Event_M_Room_Message_Content_Redacted),
 	Text(Event_M_Room_Message_Content_Text),
 	Other(Event_M_Room_Message_Content_Other),
