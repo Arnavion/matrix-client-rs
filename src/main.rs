@@ -321,8 +321,14 @@ struct Event_M_Room_Message_Content_Image {
 
 #[allow(non_camel_case_types)]
 #[derive(serde::Deserialize)]
+struct Event_M_Room_Message_Content_Notice {
+	body: String,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(serde::Deserialize)]
 struct Event_M_Room_Message_Content_Redacted {
-	redacted_because: SyncResponse_RoomEvent,
+	redacted_because: Option<SyncResponse_RoomEvent>,
 	redacted_by: Option<String>,
 }
 
