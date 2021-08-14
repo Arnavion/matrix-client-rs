@@ -172,12 +172,12 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 			},
 
 			crate::Event::M_Room_PowerLevels { users } => {
-				let mut users_by_power_level: std::collections::BTreeMap<usize, Vec<String>> = Default::default();
+				let mut users_by_power_level: std::collections::BTreeMap<std::cmp::Reverse<usize>, Vec<String>> = Default::default();
 				let mut result = String::new();
 				for (user_id, power_level) in users {
-					users_by_power_level.entry(power_level).or_default().push(user_id);
+					users_by_power_level.entry(std::cmp::Reverse(power_level)).or_default().push(user_id);
 				}
-				for (power_level, mut users) in users_by_power_level {
+				for (std::cmp::Reverse(power_level), mut users) in users_by_power_level {
 					if !result.is_empty() {
 						result.push_str("; ");
 					}
