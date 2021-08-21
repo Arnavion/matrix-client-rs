@@ -42,8 +42,8 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 					(&*room_id).into()
 				};
 
-			write!(stdout, "\x1B]2;{}\x1B\\", room_display_name)?;
-			stdout.flush()?;
+			let _ = write!(stdout, "\x1B]2;{}\x1B\\", room_display_name);
+			let _ = stdout.flush();
 
 			let mut rename_command = std::process::Command::new("tmux");
 			rename_command.args(&["rename-window", "-t"]);

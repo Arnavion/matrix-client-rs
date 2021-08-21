@@ -21,8 +21,8 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 	let stderr = std::io::stderr();
 	let mut stderr = stderr.lock();
 
-	write!(stdout, "\x1B]2;{}\x1B\\", user_id)?;
-	stdout.flush()?;
+	let _ = write!(stdout, "\x1B]2;{}\x1B\\", user_id);
+	let _ = stdout.flush();
 
 	let mut state_manager = crate::state::Manager::new(&user_id).context("could not create state manager")?;
 
@@ -100,39 +100,42 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 			events: Vec<crate::SyncResponse_RoomEvent>,
 		}
 
-		let sync: SyncResponse = loop {
-			write!(stdout, "\rSyncing at {} ... ", chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false))?;
-			stdout.flush()?;
+		const SYNC_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
-			let sync = if let Some(sync_next_batch) = sync_next_batch.as_deref() {
-				client.request(
-					&homeserver_base_url,
-					&format!(
-						"/_matrix/client/r0/sync?filter={}&since={}&timeout=10000",
-						PercentEncode(&sync_filter_id),
-						PercentEncode(sync_next_batch),
-					),
-					Some(auth_header.clone()),
-					crate::http_client::RequestMethod::Get::<()>,
-				).await.context("could not sync")?
+		let path =
+			if let Some(sync_next_batch) = sync_next_batch.as_deref() {
+				format!(
+					"/_matrix/client/r0/sync?filter={}&since={}&timeout={}",
+					PercentEncode(&sync_filter_id),
+					PercentEncode(sync_next_batch),
+					SYNC_TIMEOUT.as_millis(),
+				)
 			}
 			else {
+				format!("/_matrix/client/r0/sync?filter={}", PercentEncode(&sync_filter_id))
+			};
+
+		let sync: SyncResponse = loop {
+			let _ = write!(stdout, "\rSyncing at {} ... ", chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
+			stdout.flush()?;
+
+			let response =
 				client.request(
 					&homeserver_base_url,
-					&format!("/_matrix/client/r0/sync?filter={}", PercentEncode(&sync_filter_id)),
+					&path,
 					Some(auth_header.clone()),
 					crate::http_client::RequestMethod::Get::<()>,
-				).await.context("could not sync")?
-			};
-			match sync {
-				crate::http_client::HomeserverResponse::Ok(response) => {
-					write!(stdout, "\rSynced at {}      ", chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false))?;
+				);
+			let response = tokio::time::timeout(SYNC_TIMEOUT + std::time::Duration::from_secs(10), response);
+			match response.await {
+				Ok(Ok(crate::http_client::HomeserverResponse::Ok(response))) => {
+					let _ = write!(stdout, "\rSynced at {}      ", chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
 					stdout.flush()?;
 					break response;
 				},
 
-				crate::http_client::HomeserverResponse::Err(err) => {
-					let _ = writeln!(stderr, "{}", err);
+				Ok(Ok(crate::http_client::HomeserverResponse::Err(err))) => {
+					let _ = writeln!(stderr, "\nSync error: {:?}       ", err);
 
 					let mut state = state_manager.load().context("could not load state")?;
 					state.access_token = None;
@@ -143,6 +146,15 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 					auth_header =
 						login(&client, &mut state_manager, &homeserver_base_url, &user_id, &mut stderr)
 						.await.context("could not log in")?;
+				},
+
+				Ok(Err(err)) => {
+					let _ = writeln!(stderr, "\nSync error: {:?}       ", err);
+					tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+				},
+
+				Err(tokio::time::error::Elapsed { .. }) => {
+					let _ = writeln!(stderr, "timed out");
 				},
 			}
 		};
