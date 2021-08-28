@@ -300,7 +300,7 @@ define_events! {
 	"m.room.history_visibility" => M_Room_HistoryVisibility { history_visibility: String },
 	"m.room.join_rules" => M_Room_JoinRules { join_rule: String },
 	"m.room.name" => M_Room_Name { name: String },
-	"m.room.power_levels" => M_Room_PowerLevels { users: std::collections::BTreeMap<String, usize> },
+	"m.room.power_levels" => M_Room_PowerLevels { users: std::collections::BTreeMap<String, usize>, users_default: Option<usize> },
 	"m.room.related_groups" => M_Room_RelatedGroups { groups: Vec<String> },
 	"m.room.topic" => M_Room_Topic { topic: String },
 }

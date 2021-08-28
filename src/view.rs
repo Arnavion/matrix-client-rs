@@ -26,6 +26,9 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 	let mut room_canonical_alias: Option<String> = None;
 	let mut room_display_name_changed = true;
 
+	let mut user_power_levels: std::collections::BTreeMap<String, usize> = Default::default();
+	let mut user_power_level_default = 0;
+
 	loop {
 		if room_display_name_changed {
 			let room_display_name: std::borrow::Cow<'_, str> =
@@ -116,71 +119,147 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 
 		match event {
 			crate::Event::M_Room_CanonicalAlias { alias } => {
-				let _ = writeln!(stdout, "{} set room canonical alias to {}", sender, alias);
+				let _ = writeln!(stdout,
+					"![{power_level}] {sender}! set room canonical alias to {alias}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					alias = alias,
+				);
 				room_canonical_alias = Some(alias);
 				room_display_name_changed = true;
 			},
 
 			crate::Event::M_Room_Create { room_version } => {
-				let _ = writeln!(stdout, "{} created room with version {}", sender, room_version.as_deref().unwrap_or("1"));
+				let _ = writeln!(stdout,
+					"![{power_level}] {sender}! created room with version {room_version}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					room_version = room_version.as_deref().unwrap_or("1"),
+				);
 			},
 
 			crate::Event::M_Room_Encrypted { algorithm, ciphertext, device_id, sender_key, session_id } => {
-				let _ = writeln!(stdout, "<{}> [encrypted message] {} {} {} {} {}", sender, algorithm, session_id, sender_key, device_id, ciphertext);
+				let _ = writeln!(stdout,
+					"<[{power_level}] {sender}> [encrypted message] {algorithm} {session_id} {sender_key} {device_id} {ciphertext}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					algorithm = algorithm,
+					session_id = session_id,
+					sender_key = sender_key,
+					device_id = device_id,
+					ciphertext = ciphertext,
+				);
 			},
 
 			crate::Event::M_Room_GuestAccess { guest_access } => {
-				let _ = writeln!(stdout, "{} set room guest access to {}", sender, guest_access);
+				let _ = writeln!(stdout,
+					"![{power_level}] {sender}! set room guest access to {guest_access}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					guest_access = guest_access,
+				);
 			},
 
 			crate::Event::M_Room_HistoryVisibility { history_visibility } => {
-				let _ = writeln!(stdout, "{} set room history visibility to {}", sender, history_visibility);
+				let _ = writeln!(stdout,
+					"![{power_level}] {sender}! set room history visibility to {history_visibility}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					history_visibility = history_visibility,
+				);
 			},
 
 			crate::Event::M_Room_JoinRules { join_rule } => {
-				let _ = writeln!(stdout, "{} set room join rules to {}", sender, join_rule);
+				let _ = writeln!(stdout,
+					"![{power_level}] {sender}! set room join rules to {join_rule}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					join_rule = join_rule,
+				);
 			},
 
 			crate::Event::M_Room_Message(content) => match content {
 				crate::Event_M_Room_Message_Content::File(crate::Event_M_Room_Message_Content_File { body, url }) => {
-					let _ = writeln!(stdout, "{} posted file {} at {}", sender, body, url);
+					let _ = writeln!(stdout,
+						"![{power_level}] {sender}! posted file {body} at {url}",
+						power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+						sender = sender,
+						body = body,
+						url = url,
+					);
 				},
 
 				crate::Event_M_Room_Message_Content::Image(crate::Event_M_Room_Message_Content_Image { body, url }) => {
-					let _ = writeln!(stdout, "{} posted image {} at {}", sender, body, url);
+					let _ = writeln!(stdout,
+						"![{power_level}] {sender}! posted image {body} at {url}",
+						power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+						sender = sender,
+						body = body,
+						url = url,
+					);
 				},
 
 				crate::Event_M_Room_Message_Content::Notice(crate::Event_M_Room_Message_Content_Notice { body }) => {
-					let _ = write!(stdout, "<{}> ", sender);
+					let _ = write!(stdout,
+						"<[{power_level}] {sender}> ",
+						power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+						sender = sender,
+					);
 					print_multiline(&mut stdout, &body);
 				},
 
 				crate::Event_M_Room_Message_Content::Redacted(crate::Event_M_Room_Message_Content_Redacted { redacted_because, redacted_by }) => {
-					let _ = writeln!(stdout, "<{}> <redacted by {}> {:?}", sender, redacted_by.as_deref().unwrap_or("(unknown)"), redacted_because);
+					let _ = writeln!(stdout,
+						"<[{power_level}] {sender}> <redacted by {redacted_by}> {redacted_because:?}",
+						power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+						sender = sender,
+						redacted_by = redacted_by.as_deref().unwrap_or("(unknown)"),
+						redacted_because = redacted_because,
+					);
 				},
 
 				crate::Event_M_Room_Message_Content::Text(crate::Event_M_Room_Message_Content_Text { body }) => {
-					let _ = write!(stdout, "<{}> ", sender);
+					let _ = write!(stdout,
+						"<[{power_level}] {sender}> ",
+						power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+						sender = sender,
+					);
 					print_multiline(&mut stdout, &body);
 				},
 
 				crate::Event_M_Room_Message_Content::Other(crate::Event_M_Room_Message_Content_Other { msgtype, content, unsigned }) => {
-					let _ = writeln!(stdout, "{} {:?} {:?} {:?}", sender, msgtype, content, unsigned);
+					let _ = writeln!(stdout,
+						"![{power_level}] {sender}! {msgtype:?} {content:?} {unsigned:?}",
+						power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+						sender = sender,
+						msgtype = msgtype,
+						content = content,
+						unsigned = unsigned,
+					);
 				},
 			},
 
 			crate::Event::M_Room_Name { name } => {
-				let _ = writeln!(stdout, "{} set room name to {}", sender, name);
+				let _ = writeln!(stdout,
+					"![{power_level}] {sender}! set room name to {name}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					name = name,
+				);
 				room_name = Some(name);
 				room_display_name_changed = true;
 			},
 
-			crate::Event::M_Room_PowerLevels { users } => {
+			crate::Event::M_Room_PowerLevels { users, users_default } => {
+				user_power_level_default = users_default.unwrap_or(0);
+
 				let mut users_by_power_level: std::collections::BTreeMap<std::cmp::Reverse<usize>, Vec<String>> = Default::default();
-				let mut result = String::new();
 				for (user_id, power_level) in users {
-					users_by_power_level.entry(std::cmp::Reverse(power_level)).or_default().push(user_id);
+					users_by_power_level.entry(std::cmp::Reverse(power_level)).or_default().push(user_id.clone());
+					user_power_levels.insert(user_id, power_level);
 				}
+
+				let mut result = String::new();
 				for (std::cmp::Reverse(power_level), mut users) in users_by_power_level {
 					if !result.is_empty() {
 						result.push_str("; ");
@@ -188,20 +267,41 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 					users.sort();
 					result.push_str(&format!("{}: {}", power_level, users.join(", ")));
 				}
-				let _ = writeln!(stdout, "{} set room power levels: {}", sender, result);
+
+				let _ = writeln!(stdout,
+					"![{power_level}] {sender}! set room power levels: {result}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					result = result,
+				);
 			},
 
 			crate::Event::M_Room_RelatedGroups { groups } => {
-				let _ = writeln!(stdout, "{} set room related groups to {}", sender, groups.join(", "));
+				let _ = writeln!(stdout,
+					"![{power_level}] {sender}! set room related groups to {groups}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					groups = groups.join(", "),
+				);
 			},
 
 			crate::Event::M_Room_Topic { topic } => {
-				let _ = write!(stdout, "{} set room topic to ", sender);
+				let _ = write!(stdout,
+					"![{power_level}] {sender}! set room topic to ",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+				);
 				print_multiline(&mut stdout, &topic);
 			},
 
 			crate::Event::Unknown { r#type, content } => {
-				let _ = writeln!(stdout, "{} {} {:?}", sender, r#type, content);
+				let _ = writeln!(stdout,
+					"![{power_level}] {sender}! {type} {content:?}",
+					power_level = user_power_levels.get(&sender).unwrap_or(&user_power_level_default),
+					sender = sender,
+					r#type = r#type,
+					content = content,
+				);
 			},
 		}
 	}
