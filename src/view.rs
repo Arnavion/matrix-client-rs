@@ -142,8 +142,12 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 			},
 
 			crate::Event::M_Room_Message(content) => match content {
+				crate::Event_M_Room_Message_Content::File(crate::Event_M_Room_Message_Content_File { body, url }) => {
+					let _ = writeln!(stdout, "{} posted file {} at {}", sender, body, url);
+				},
+
 				crate::Event_M_Room_Message_Content::Image(crate::Event_M_Room_Message_Content_Image { body, url }) => {
-					let _ = writeln!(stdout, "{} posted image {} {}", sender, body, url);
+					let _ = writeln!(stdout, "{} posted image {} at {}", sender, body, url);
 				},
 
 				crate::Event_M_Room_Message_Content::Notice(crate::Event_M_Room_Message_Content_Notice { body }) => {
