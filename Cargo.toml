@@ -22,7 +22,7 @@ chrono = { version = "0.4", default-features = false, features = [
 	"serde", # for chrono::serde
 ] }
 ct-logs = { version = "0.8", default-features = false }
-dirs = { version = "3", default-features = false }
+dirs = { version = "4", default-features = false }
 hkdf = { version = "0.11", default-features = false }
 hmac = { version = "0.11", default-features = false, features = [
 	"std",
