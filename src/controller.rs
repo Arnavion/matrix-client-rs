@@ -54,7 +54,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 	#[allow(unused)] // TODO
 	let mut cross_signing_user_signing_key = None;
 
-	let mut view_fds: std::collections::BTreeMap<String, std::os::unix::io::RawFd> = Default::default();
+	let mut view_fds: std::collections::BTreeMap<String, std::fs::File> = Default::default();
 
 	loop {
 		#[derive(serde::Deserialize)]
@@ -333,7 +333,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 		}
 
 		for (room_id, lines) in to_write {
-			let view_fd = match view_fds.entry(room_id) {
+			let f = match view_fds.entry(room_id) {
 				std::collections::btree_map::Entry::Vacant(entry) => {
 					let tempdir =
 						tempfile::tempdir()
@@ -366,14 +366,11 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 						view.output()
 						.with_context(|| format!("could not create view for {}", entry.key()))?;
 
-					std::mem::forget(fifo);
-
-					*entry.insert(view_fd)
+					entry.insert(fifo)
 				},
 
-				std::collections::btree_map::Entry::Occupied(entry) => *entry.into_mut(),
+				std::collections::btree_map::Entry::Occupied(entry) => entry.into_mut(),
 			};
-			let mut f = std::mem::ManuallyDrop::new(unsafe { <std::fs::File as std::os::unix::io::FromRawFd>::from_raw_fd(view_fd) });
 
 			for line in lines {
 				let () = serde_json::to_writer(&mut *f, &line).context("could not write view line")?;
