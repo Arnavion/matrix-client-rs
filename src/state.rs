@@ -71,6 +71,8 @@ pub(crate) struct State {
 
 	#[serde(default)]
 	pub(crate) secret_storage_keys: std::collections::BTreeMap<String, SecretStorageKey>,
+
+	pub(crate) tmux_conf: Option<std::path::PathBuf>,
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]

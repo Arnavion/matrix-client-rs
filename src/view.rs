@@ -1,6 +1,6 @@
 use anyhow::Context;
 
-pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> {
+pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> {
 	use std::io::Write;
 
 	let stdout = std::io::stdout();
@@ -48,7 +48,7 @@ pub(crate) fn run(room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> 
 			let _ = write!(stdout, "\x1B]2;{}\x1B\\", room_display_name);
 			let _ = stdout.flush();
 
-			let mut rename_command = std::process::Command::new("tmux");
+			let mut rename_command = crate::tmux(user_id)?;
 			rename_command.args(&["rename-window", "-t"]);
 			rename_command.arg(&tmux_pane);
 			rename_command.arg(&*room_display_name);

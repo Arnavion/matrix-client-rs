@@ -354,7 +354,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 					let mut args = std::env::args_os();
 					let arg0 = args.next().context("argv[0] is not set")?;
 
-					let mut view = std::process::Command::new("tmux");
+					let mut view = crate::tmux(&user_id)?;
 					view.args(&["new-window", "-d"]);
 					if std::env::var_os("DEBUG").is_some() {
 						view.args(&["-e", "DEBUG=1"]);

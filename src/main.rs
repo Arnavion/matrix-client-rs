@@ -71,7 +71,7 @@ fn main() -> anyhow::Result<()> {
 			let mut args = std::env::args_os();
 			let arg0 = args.next().context("argv[0] is not set")?;
 
-			let mut controller = std::process::Command::new("tmux");
+			let mut controller = tmux(&user_id)?;
 			controller.args(&["new-session", "-s", "matrix-client", "-n", &user_id]);
 			if std::env::var_os("DEBUG").is_some() {
 				controller.args(&["-e", "DEBUG=1"]);
@@ -90,7 +90,7 @@ fn main() -> anyhow::Result<()> {
 
 			let backed_up_session_data = e2e_keys_backup::import(&backup, &password)?;
 
-			let mut state_manager = crate::state::Manager::new(&user_id).context("could not create state manager")?;
+			let mut state_manager = state::Manager::new(&user_id).context("could not create state manager")?;
 			let mut state = state_manager.load().context("could not load state")?;
 
 			let stderr = std::io::stderr();
@@ -109,7 +109,7 @@ fn main() -> anyhow::Result<()> {
 		Some(Command::Config { options: ConfigOptions::ImportSecretStorageKey { id, passphrase, keyfile } }) => {
 			use std::io::Write;
 
-			let mut state_manager = crate::state::Manager::new(&user_id).context("could not create state manager")?;
+			let mut state_manager = state::Manager::new(&user_id).context("could not create state manager")?;
 			let mut state = state_manager.load().context("could not load state")?;
 
 			let stderr = std::io::stderr();
@@ -133,7 +133,7 @@ fn main() -> anyhow::Result<()> {
 			let stderr = std::io::stderr();
 			let mut stderr = stderr.lock();
 
-			let mut state_manager = crate::state::Manager::new(&user_id).context("could not create state manager")?;
+			let mut state_manager = state::Manager::new(&user_id).context("could not create state manager")?;
 			let mut state = state_manager.load().context("could not load state")?;
 
 			if let Some(_access_token) = state.access_token.take() {
@@ -148,16 +148,29 @@ fn main() -> anyhow::Result<()> {
 
 		Some(Command::Controller) => controller::run(user_id)?,
 
-		Some(Command::View { room_id, lines }) => view::run(&room_id, &lines)?,
+		Some(Command::View { room_id, lines }) => view::run(&user_id, &room_id, &lines)?,
 	}
 
 	Ok(())
 }
 
+fn tmux(user_id: &str) -> anyhow::Result<std::process::Command> {
+	let mut command = std::process::Command::new("tmux");
+
+	let mut state_manager = state::Manager::new(user_id).context("could not create state manager")?;
+	let state = state_manager.load().context("could not load state")?;
+	if let Some(tmux_conf) = state.tmux_conf.as_ref() {
+		command.arg("-f");
+		command.arg(tmux_conf);
+	}
+
+	Ok(command)
+}
+
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 enum RoomViewLine {
 	AccountData {
-		account_data: crate::SyncResponse_AccountData,
+		account_data: SyncResponse_AccountData,
 	},
 
 	Summary {
