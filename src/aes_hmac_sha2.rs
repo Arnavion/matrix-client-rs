@@ -114,7 +114,7 @@ pub(crate) fn encrypt(
 	iv: &str,
 ) -> Result<hmac::crypto_mac::Output<hmac::Hmac<sha2::Sha256>>, EncryptError> {
 	let iv = base64::decode(iv).map_err(EncryptError::MalformedIvBase64)?;
-	let iv: &[u8; 16] = std::convert::TryInto::try_into(&iv[..]).map_err(EncryptError::MalformedIvLength)?;
+	let iv: &[u8; 16] = iv[..].try_into().map_err(EncryptError::MalformedIvLength)?;
 
 	let mut okm = [0_u8; 64];
 	let () = key.expand(secret_name.as_bytes(), &mut okm).expect("output length is statically correct");
@@ -153,7 +153,7 @@ pub(crate) fn decrypt(
 	mac: &str,
 ) -> Result<(), DecryptError> {
 	let iv = base64::decode(iv).map_err(DecryptError::MalformedIvBase64)?;
-	let iv: &[u8; 16] = std::convert::TryInto::try_into(&iv[..]).map_err(DecryptError::MalformedIvLength)?;
+	let iv: &[u8; 16] = iv[..].try_into().map_err(DecryptError::MalformedIvLength)?;
 
 	let hmac = base64::decode(mac).map_err(DecryptError::MalformedMac)?;
 

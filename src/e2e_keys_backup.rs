@@ -9,7 +9,7 @@ pub(crate) fn import(
 		return Err(Error::UnexpectedPemTag(tag));
 	}
 
-	let backup: Backup<'_> = std::convert::TryInto::try_into(&*contents)?;
+	let backup: Backup<'_> = (&*contents).try_into()?;
 	let backup = backup.decrypt(password)?;
 
 	let session_data = serde_json::from_slice(&backup).map_err(Error::MalformedJson)?;
@@ -84,7 +84,7 @@ impl Backup<'_> {
 	}
 }
 
-impl<'a> std::convert::TryFrom<&'a [u8]> for Backup<'a> {
+impl<'a> TryFrom<&'a [u8]> for Backup<'a> {
 	type Error = Error;
 
 	fn try_from(backup: &'a [u8]) -> Result<Self, Self::Error> {
@@ -114,7 +114,7 @@ impl<'a> std::convert::TryFrom<&'a [u8]> for Backup<'a> {
 fn try_split_prefix<const N: usize>(s: &[u8]) -> Option<(&[u8; N], &[u8])> {
 	if s.len() >= N {
 		let (a, b) = s.split_at(N);
-		Some((std::convert::TryInto::try_into(a).expect("guaranteed by split_at"), b))
+		Some((a.try_into().expect("guaranteed by split_at"), b))
 	}
 	else {
 		None
@@ -124,7 +124,7 @@ fn try_split_prefix<const N: usize>(s: &[u8]) -> Option<(&[u8; N], &[u8])> {
 fn try_split_suffix<const N: usize>(s: &[u8]) -> Option<(&[u8], &[u8; N])> {
 	if s.len() >= N {
 		let (a, b) = s.split_at(s.len() - N);
-		Some((a, std::convert::TryInto::try_into(b).expect("guaranteed by split_at")))
+		Some((a, b.try_into().expect("guaranteed by split_at")))
 	}
 	else {
 		None

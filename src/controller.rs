@@ -502,7 +502,7 @@ async fn login(
 					nix::unistd::sysconf(nix::unistd::SysconfVar::HOST_NAME_MAX).context("could not get hostname")?
 					.unwrap_or(64);
 				let hostname_max_len: usize =
-					std::convert::TryInto::try_into(hostname_max_len)
+					hostname_max_len.try_into()
 					.context("could not get hostname")?;
 				let mut hostname = vec![0_u8; hostname_max_len + 1];
 				let hostname = nix::unistd::gethostname(&mut hostname).context("could not get hostname")?;

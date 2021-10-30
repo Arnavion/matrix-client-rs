@@ -109,13 +109,13 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 			last_event_origin_server_date = Some(origin_server_date);
 		}
 
-		let _ = write!(stdout, "[{}] ", origin_server_ts.format_with_items(std::array::IntoIter::new([
+		let _ = write!(stdout, "[{}] ", origin_server_ts.format_with_items([
 			chrono::format::Item::Numeric(chrono::format::Numeric::Hour, chrono::format::Pad::Zero),
 			chrono::format::Item::Literal(":"),
 			chrono::format::Item::Numeric(chrono::format::Numeric::Minute, chrono::format::Pad::Zero),
 			chrono::format::Item::Literal(":"),
 			chrono::format::Item::Numeric(chrono::format::Numeric::Second, chrono::format::Pad::Zero),
-		])));
+		].into_iter()));
 
 		match event {
 			crate::Event::M_Room_CanonicalAlias { alias } => {

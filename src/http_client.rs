@@ -73,7 +73,7 @@ impl Client {
 					.with_context(|| format!("could not execute request: received {} but no location header", status))?;
 				let location = location.as_bytes();
 				let location =
-					std::convert::TryInto::try_into(location)
+					location.try_into()
 					.context("could not execute request: received redirect resposne with malformed location header")?;
 				Response::Redirect(location)
 			}
@@ -89,7 +89,7 @@ impl Client {
 			})
 		}
 
-		let mut uri = std::convert::TryInto::try_into(format!("{}{}", base, path)).context("could not request")?;
+		let mut uri = format!("{}{}", base, path).try_into().context("could not request")?;
 
 		loop {
 			let follow_redirect = matches!(method, RequestMethod::Get) && auth_header.is_none();
