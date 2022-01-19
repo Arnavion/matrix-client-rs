@@ -36,16 +36,16 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 					room_canonical_alias.into()
 				}
 				else if let Some(room_name) = room_name.as_deref() {
-					format!("{} ({})", room_name, room_id).into()
+					format!("{room_name} ({room_id})").into()
 				}
 				else if room_heroes.len() + 1 >= room_joined_member_count + room_invited_member_count {
-					format!("{} ({})", room_heroes.join(", "), room_id).into()
+					format!("{} ({room_id})", room_heroes.join(", ")).into()
 				}
 				else {
 					(&*room_id).into()
 				};
 
-			let _ = write!(stdout, "\x1B]2;{}\x1B\\", room_display_name);
+			let _ = write!(stdout, "\x1B]2;{room_display_name}\x1B\\");
 			let _ = stdout.flush();
 
 			let mut rename_command = crate::tmux(user_id)?;
@@ -63,7 +63,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 			.context("could not read line from lines file")?;
 
 		if std::env::var_os("DEBUG").is_some() {
-			let _ = writeln!(stderr, "{:?}", line);
+			let _ = writeln!(stderr, "{line:?}");
 		}
 
 		let (origin_server_ts, sender, event) = match line {
@@ -104,7 +104,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 			if last_event_origin_server_date.is_some() {
 				let _ = writeln!(stdout);
 			}
-			let _ = writeln!(stdout, "--- {} ---", origin_server_date);
+			let _ = writeln!(stdout, "--- {origin_server_date} ---");
 
 			last_event_origin_server_date = Some(origin_server_date);
 		}
@@ -122,7 +122,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 				write_with_sender(
 					&mut stdout, &sender, &user_power_levels, user_power_level_default,
 					SenderDecoration::Event,
-					format_args!("set room canonical alias to {alias}\n", alias = alias),
+					format_args!("set room canonical alias to {alias}\n"),
 				);
 				room_canonical_alias = Some(alias);
 				room_display_name_changed = true;
@@ -139,35 +139,28 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 				write_with_sender(
 					&mut stdout, &sender, &user_power_levels, user_power_level_default,
 					SenderDecoration::Message,
-					format_args!(
-						"[encrypted message] {algorithm} {session_id} {sender_key} {device_id} {ciphertext}\n",
-						algorithm = algorithm,
-						session_id = session_id,
-						sender_key = sender_key,
-						device_id = device_id,
-						ciphertext = ciphertext,
-					),
+					format_args!("[encrypted message] {algorithm} {session_id} {sender_key} {device_id} {ciphertext}\n"),
 				),
 
 			crate::Event::M_Room_GuestAccess { guest_access } =>
 				write_with_sender(
 					&mut stdout, &sender, &user_power_levels, user_power_level_default,
 					SenderDecoration::Event,
-					format_args!("set room guest access to {guest_access}\n", guest_access = guest_access),
+					format_args!("set room guest access to {guest_access}\n"),
 				),
 
 			crate::Event::M_Room_HistoryVisibility { history_visibility } =>
 				write_with_sender(
 					&mut stdout, &sender, &user_power_levels, user_power_level_default,
 					SenderDecoration::Event,
-					format_args!("set room history visibility to {history_visibility}\n", history_visibility = history_visibility),
+					format_args!("set room history visibility to {history_visibility}\n"),
 				),
 
 			crate::Event::M_Room_JoinRules { join_rule } =>
 				write_with_sender(
 					&mut stdout, &sender, &user_power_levels, user_power_level_default,
 					SenderDecoration::Event,
-					format_args!("set room join rules to {join_rule}\n", join_rule = join_rule),
+					format_args!("set room join rules to {join_rule}\n"),
 				),
 
 			crate::Event::M_Room_Message(content) => match content {
@@ -175,14 +168,14 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 					write_with_sender(
 						&mut stdout, &sender, &user_power_levels, user_power_level_default,
 						SenderDecoration::Event,
-						format_args!("posted file {body} at {url}\n", body = body, url = url),
+						format_args!("posted file {body} at {url}\n"),
 					),
 
 				crate::Event_M_Room_Message_Content::Image(crate::Event_M_Room_Message_Content_Image { body, url }) =>
 					write_with_sender(
 						&mut stdout, &sender, &user_power_levels, user_power_level_default,
 						SenderDecoration::Event,
-						format_args!("posted image {body} at {url}\n", body = body, url = url),
+						format_args!("posted image {body} at {url}\n"),
 					),
 
 				crate::Event_M_Room_Message_Content::Notice(crate::Event_M_Room_Message_Content_Notice { body }) |
@@ -202,7 +195,6 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 						format_args!(
 							"<redacted by {redacted_by}> {redacted_because:?}\n",
 							redacted_by = redacted_by.as_deref().unwrap_or("(unknown)"),
-							redacted_because = redacted_because,
 						),
 					),
 
@@ -210,7 +202,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 					write_with_sender(
 						&mut stdout, &sender, &user_power_levels, user_power_level_default,
 						SenderDecoration::Event,
-						format_args!("{msgtype:?} {content:?} {unsigned:?}\n", msgtype = msgtype, content = content, unsigned = unsigned),
+						format_args!("{msgtype:?} {content:?} {unsigned:?}\n"),
 					),
 			},
 
@@ -218,7 +210,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 				write_with_sender(
 					&mut stdout, &sender, &user_power_levels, user_power_level_default,
 					SenderDecoration::Event,
-					format_args!("set room name to {name}\n", name = name),
+					format_args!("set room name to {name}\n"),
 				);
 				room_name = Some(name);
 				room_display_name_changed = true;
@@ -239,13 +231,13 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 						result.push_str("; ");
 					}
 					users.sort();
-					result.push_str(&format!("{}: {}", power_level, users.join(", ")));
+					result.push_str(&format!("{power_level}: {}", users.join(", ")));
 				}
 
 				write_with_sender(
 					&mut stdout, &sender, &user_power_levels, user_power_level_default,
 					SenderDecoration::Event,
-					format_args!("set room power levels: {result}\n", result = result),
+					format_args!("set room power levels: {result}\n"),
 				);
 			},
 
@@ -269,7 +261,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 				write_with_sender(
 					&mut stdout, &sender, &user_power_levels, user_power_level_default,
 					SenderDecoration::Event,
-					format_args!("{type} {content:?}\n", r#type = r#type, content = content),
+					format_args!("{type} {content:?}\n"),
 				),
 		}
 	}
@@ -282,7 +274,7 @@ fn print_multiline(stdout: &mut impl std::io::Write, s: &str) {
 		let _ = writeln!(stdout, ">");
 
 		loop {
-			let _ = writeln!(stdout, "           | {}", line);
+			let _ = writeln!(stdout, "           | {line}");
 
 			if let Some(rest_) = rest {
 				let (next_line, next_rest) = rest_.split_once('\n').map_or((rest_, None), |(line, rest)| (line, Some(rest)));
@@ -295,7 +287,7 @@ fn print_multiline(stdout: &mut impl std::io::Write, s: &str) {
 		}
 	}
 	else {
-		let _ = writeln!(stdout, "{}", s);
+		let _ = writeln!(stdout, "{s}");
 	}
 }
 
@@ -320,22 +312,11 @@ fn write_with_sender(
 
 	let user_power_level = user_power_levels.get(sender).copied().unwrap_or(user_power_level_default);
 	if user_power_level == user_power_level_default {
-		let _ = write!(stdout,
-			"{decoration_start}{sender}{decoration_end}",
-			sender = sender,
-			decoration_start = decoration_start,
-			decoration_end = decoration_end,
-		);
+		let _ = write!(stdout, "{decoration_start}{sender}{decoration_end}");
 	}
 	else {
-		let _ = write!(stdout,
-			"{decoration_start}[{user_power_level}] {sender}{decoration_end}",
-			sender = sender,
-			user_power_level = user_power_level,
-			decoration_start = decoration_start,
-			decoration_end = decoration_end,
-		);
+		let _ = write!(stdout, "{decoration_start}[{user_power_level}] {sender}{decoration_end}");
 	}
 
-	let _ = write!(stdout, " {}", rest);
+	let _ = write!(stdout, " {rest}");
 }

@@ -21,7 +21,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 	let stderr = std::io::stderr();
 	let mut stderr = stderr.lock();
 
-	let _ = write!(stdout, "\x1B]2;{}\x1B\\", user_id);
+	let _ = write!(stdout, "\x1B]2;{user_id}\x1B\\");
 	let _ = stdout.flush();
 
 	let mut state_manager = crate::state::Manager::new(&user_id).context("could not create state manager")?;
@@ -137,7 +137,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 				},
 
 				Ok(Ok(crate::http_client::HomeserverResponse::Err(err))) => {
-					let _ = writeln!(stderr, "\nSync error: {:?}       ", err);
+					let _ = writeln!(stderr, "\nSync error: {err:?}       ");
 
 					let mut state = state_manager.load().context("could not load state")?;
 					state.access_token = None;
@@ -151,7 +151,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 				},
 
 				Ok(Err(err)) => {
-					let _ = writeln!(stderr, "\nSync error: {:?}       ", err);
+					let _ = writeln!(stderr, "\nSync error: {err:?}       ");
 					tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 				},
 
@@ -361,7 +361,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 					}
 					view.arg(arg0);
 					view.args(&[&user_id, "_view", entry.key()]);
-					view.arg(&format!("/proc/{}/fd/{}", nix::unistd::Pid::this().as_raw(), view_fd));
+					view.arg(&format!("/proc/{}/fd/{view_fd}", nix::unistd::Pid::this().as_raw()));
 					let _ =
 						view.output()
 						.with_context(|| format!("could not create view for {}", entry.key()))?;
@@ -401,7 +401,7 @@ async fn get_homeserver_base_url(client: &crate::http_client::Client, user_id: &
 	let (_, homeserver_name) = user_id.split_once(':').context("could not extract homeserver name from user ID")?;
 
 	let ClientDiscoveryInfoResponse { m_homeserver: ClientDiscoveryInfoResponse_MHomeserver { base_url: homeserver_base_url } } =
-		client.request(&format!("https://{}", homeserver_name), "/.well-known/matrix/client", None, crate::http_client::RequestMethod::Get::<()>)
+		client.request(&format!("https://{homeserver_name}"), "/.well-known/matrix/client", None, crate::http_client::RequestMethod::Get::<()>)
 		.await.context("could not get client discovery info")?
 		.into_result()
 		.context("could not get client discovery info")?;
@@ -481,7 +481,7 @@ async fn login(
 				impl std::fmt::Display for HexDisplay<'_> {
 					fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 						for b in self.0 {
-							write!(f, "{:02x}", b)?;
+							write!(f, "{b:02x}")?;
 						}
 						Ok(())
 					}
@@ -527,7 +527,7 @@ async fn login(
 					crate::http_client::HomeserverResponse::Ok(LoginResponse { access_token }) => break access_token,
 
 					crate::http_client::HomeserverResponse::Err(err) => {
-						let _ = writeln!(stderr, "{}", err);
+						let _ = writeln!(stderr, "{err}");
 					},
 				}
 			};
@@ -539,7 +539,7 @@ async fn login(
 			access_token
 		};
 
-	let auth_header = format!("Bearer {}", access_token).parse().context("could not construct auth header from access token")?;
+	let auth_header = format!("Bearer {access_token}").parse().context("could not construct auth header from access token")?;
 	Ok(auth_header)
 }
 
@@ -634,7 +634,7 @@ struct PercentEncode<'a>(&'a str);
 impl std::fmt::Display for PercentEncode<'_> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		for b in self.0.as_bytes() {
-			write!(f, "%{:02x}", b)?;
+			write!(f, "%{b:02x}")?;
 		}
 		Ok(())
 	}

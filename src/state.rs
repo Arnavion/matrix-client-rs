@@ -24,7 +24,7 @@ impl Manager {
 	pub(crate) fn new(user_id: &str) -> Result<Self, Error> {
 		let mut path = dirs::config_dir().ok_or(Error::GetConfigDirectory)?;
 		path.push("matrix-client");
-		path.push(format!("{}.json", user_id));
+		path.push(format!("{user_id}.json"));
 		Ok(Manager {
 			path,
 		})

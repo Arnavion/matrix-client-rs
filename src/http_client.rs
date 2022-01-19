@@ -70,7 +70,7 @@ impl Client {
 			Ok(if status.is_redirection() {
 				let location =
 					headers.remove(http::header::LOCATION)
-					.with_context(|| format!("could not execute request: received {} but no location header", status))?;
+					.with_context(|| format!("could not execute request: received {status} but no location header"))?;
 				let location = location.as_bytes();
 				let location =
 					location.try_into()
@@ -80,7 +80,7 @@ impl Client {
 			else {
 				let content_type = headers.remove(http::header::CONTENT_TYPE);
 				if content_type.as_ref() != Some(&*APPLICATION_JSON) {
-					return Err(anyhow::anyhow!("could not execute request: unexpected content-type {:?}", content_type));
+					return Err(anyhow::anyhow!("could not execute request: unexpected content-type {content_type:?}"));
 				}
 				let body = hyper::body::aggregate(body).await.context("could not execute request: could not read response body")?;
 				let body = hyper::body::Buf::reader(body);
@@ -89,7 +89,7 @@ impl Client {
 			})
 		}
 
-		let mut uri = format!("{}{}", base, path).try_into().context("could not request")?;
+		let mut uri = format!("{base}{path}").try_into().context("could not request")?;
 
 		loop {
 			let follow_redirect = matches!(method, RequestMethod::Get) && auth_header.is_none();

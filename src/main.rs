@@ -97,7 +97,7 @@ fn main() -> anyhow::Result<()> {
 			let mut stderr = stderr.lock();
 
 			for e2e_keys_backup::BackedUpSessionData { room_id, session_id, session_data } in backed_up_session_data {
-				let _ = writeln!(stderr, "Importing session data for room {} session {} ...", room_id, session_id);
+				let _ = writeln!(stderr, "Importing session data for room {room_id} session {session_id} ...");
 				state.e2e_keys.entry(room_id).or_default().insert(session_id, session_data);
 			}
 
@@ -275,7 +275,7 @@ macro_rules! define_events {
 						let msgtype = content.remove("msgtype");
 						let msgtype = match msgtype {
 							Some(serde_json::Value::String(s)) => Some(s),
-							Some(msgtype) => return Err(serde::de::Error::custom(format!(r#"non-string "msgtype" in event {} {:?}: {:?}"#, r#type, content, msgtype))),
+							Some(msgtype) => return Err(serde::de::Error::custom(format!(r#"non-string "msgtype" in event {type} {content:?}: {msgtype:?}"#))),
 							None => None,
 						};
 						let content = match (msgtype.as_deref(), unsigned) {
