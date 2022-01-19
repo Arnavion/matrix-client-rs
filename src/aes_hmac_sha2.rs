@@ -112,7 +112,7 @@ pub(crate) fn encrypt(
 	secret_name: &str,
 	stream: &mut [u8],
 	iv: &str,
-) -> Result<hmac::crypto_mac::Output<hmac::Hmac<sha2::Sha256>>, EncryptError> {
+) -> Result<hmac::digest::CtOutput<hmac::Hmac<sha2::Sha256>>, EncryptError> {
 	let iv = base64::decode(iv).map_err(EncryptError::MalformedIvBase64)?;
 	let iv: &[u8; 16] = iv[..].try_into().map_err(EncryptError::MalformedIvLength)?;
 
@@ -123,7 +123,7 @@ pub(crate) fn encrypt(
 	let mut stream_cipher: aes::Aes256Ctr = aes::cipher::FromBlockCipher::from_block_cipher(stream_cipher, iv.into());
 	let () = aes::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, stream).map_err(|_| EncryptError::Truncated)?;
 
-	let mut mac: hmac::Hmac<sha2::Sha256> = hmac::NewMac::new_from_slice(&okm[32..]).expect("Hmac::new_from_slice accepts any key length");
+	let mut mac: hmac::Hmac<sha2::Sha256> = hmac::Mac::new_from_slice(&okm[32..]).expect("Hmac::new_from_slice accepts any key length");
 	hmac::Mac::update(&mut mac, stream);
 	let mac = hmac::Mac::finalize(mac);
 	Ok(mac)
@@ -160,10 +160,10 @@ pub(crate) fn decrypt(
 	let mut okm = [0_u8; 64];
 	let () = key.expand(secret_name.as_bytes(), &mut okm).expect("output length is statically correct");
 
-	let mut mac: hmac::Hmac<sha2::Sha256> = hmac::NewMac::new_from_slice(&okm[32..]).expect("Hmac::new_from_slice accepts any key length");
+	let mut mac: hmac::Hmac<sha2::Sha256> = hmac::Mac::new_from_slice(&okm[32..]).expect("Hmac::new_from_slice accepts any key length");
 
 	hmac::Mac::update(&mut mac, stream);
-	let () = hmac::Mac::verify(mac, &hmac).map_err(DecryptError::SignatureVerificationFailed)?;
+	let () = hmac::Mac::verify_slice(mac, &hmac).map_err(DecryptError::SignatureVerificationFailed)?;
 
 	let stream_cipher: aes::Aes256 = aes::NewBlockCipher::new(okm[..32].into());
 	let mut stream_cipher: aes::Aes256Ctr = aes::cipher::FromBlockCipher::from_block_cipher(stream_cipher, iv.into());
@@ -185,7 +185,7 @@ pub(crate) enum DecryptError {
 	MalformedMac(#[source] base64::DecodeError),
 
 	#[error("plaintext does not have the expected signature")]
-	SignatureVerificationFailed(#[source] hmac::crypto_mac::MacError),
+	SignatureVerificationFailed(#[source] hmac::digest::MacError),
 
 	#[error("ciphertext is truncated")]
 	Truncated,

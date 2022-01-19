@@ -35,7 +35,7 @@ pub(crate) enum Error {
 	MalformedPem(#[source] pem::PemError),
 
 	#[error("signature of the backup does not match")]
-	SignatureVerificationFailed(#[source] hmac::crypto_mac::MacError),
+	SignatureVerificationFailed(#[source] hmac::digest::MacError),
 
 	#[error("backup is truncated")]
 	Truncated,
@@ -67,14 +67,14 @@ impl Backup<'_> {
 				let stream_cipher: aes::Aes256 = aes::NewBlockCipher::new(key[..32].into());
 				let mut stream_cipher: aes::Aes256Ctr = aes::cipher::FromBlockCipher::from_block_cipher(stream_cipher, iv.into());
 
-				let mut mac: hmac::Hmac<sha2::Sha256> = hmac::NewMac::new_from_slice(&key[32..]).expect("Hmac::new_from_slice accepts any key length");
+				let mut mac: hmac::Hmac<sha2::Sha256> = hmac::Mac::new_from_slice(&key[32..]).expect("Hmac::new_from_slice accepts any key length");
 
 				hmac::Mac::update(&mut mac, &[1]);
 				hmac::Mac::update(&mut mac, &salt[..]);
 				hmac::Mac::update(&mut mac, &iv[..]);
 				hmac::Mac::update(&mut mac, &rounds.to_be_bytes());
 				hmac::Mac::update(&mut mac, ciphertext);
-				let () = hmac::Mac::verify(mac, &hmac[..]).map_err(Error::SignatureVerificationFailed)?;
+				let () = hmac::Mac::verify_slice(mac, &hmac[..]).map_err(Error::SignatureVerificationFailed)?;
 
 				let mut plaintext = ciphertext.to_owned();
 				let () = aes::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, &mut plaintext).map_err(|_| Error::Truncated)?;

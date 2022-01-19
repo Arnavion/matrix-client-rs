@@ -492,7 +492,7 @@ async fn login(
 					machine_id.pop();
 				}
 
-				let unique_id = sha2::Sha256::new().chain(&machine_id).finalize();
+				let unique_id = sha2::Sha256::new().chain_update(&machine_id).finalize();
 
 				format!("matrix-client:{}", HexDisplay(&unique_id))
 			};

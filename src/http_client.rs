@@ -7,21 +7,12 @@ pub(crate) struct Client {
 
 impl Client {
 	pub(crate) fn new(user_agent: http::HeaderValue) -> Self {
-		// Use this long form instead of just `hyper_rustls::HttpsConnector::with_webpki_roots()`
-		// because otherwise it tries to initiate HTTP/2 connections with some hosts.
-		//
-		// Ref: https://github.com/ctz/hyper-rustls/issues/143
-		let connector: hyper_rustls::HttpsConnector<_> = {
-			let mut connector = hyper::client::connect::HttpConnector::new();
-			connector.enforce_http(false);
-
-			let mut config = rustls::ClientConfig::new();
-			config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-			config.alpn_protocols = vec![b"http/1.1".to_vec()];
-			config.ct_logs = Some(&ct_logs::LOGS);
-
-			(connector, config).into()
-		};
+		let connector =
+			hyper_rustls::HttpsConnectorBuilder::new()
+			.with_webpki_roots()
+			.https_or_http()
+			.enable_http1()
+			.build();
 
 		let inner = hyper::Client::builder().build(connector);
 
