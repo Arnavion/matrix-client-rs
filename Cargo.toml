@@ -21,6 +21,10 @@ chrono = { version = "0.4", default-features = false, features = [
 	"clock", # for chrono::Utc::now()
 	"serde", # for chrono::serde
 ] }
+clap = { version = "3", default-features = false, features = [
+	"derive", # for #[derive(clap::Parser)]
+	"std", # "`std` feature is currently required to build `clap`"
+] }
 dirs = { version = "4", default-features = false }
 hkdf = { version = "0.12", default-features = false }
 hmac = { version = "0.12", default-features = false, features = [
@@ -45,7 +49,6 @@ serde = { version = "1", default-features = false, features = [
 ] }
 serde_json = { version = "1", default-features = false, features = ["std"] }
 sha2 = { version = "0.10", default-features = false }
-structopt = { version = "0.3", default-features = false }
 subtle = { version = "2", default-features = false }
 tempfile = { version = "3", default-features = false }
 thiserror = { version = "1", default-features = false }

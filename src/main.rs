@@ -18,25 +18,25 @@ mod view;
 
 use anyhow::Context;
 
-#[derive(structopt::StructOpt)]
+#[derive(clap::Parser)]
 struct Options {
 	user_id: String,
 
-	#[structopt(subcommand)]
+	#[clap(subcommand)]
 	command: Option<Command>,
 }
 
-#[derive(structopt::StructOpt)]
+#[derive(clap::Parser)]
 enum Command {
 	Config {
-		#[structopt(subcommand)]
+		#[clap(subcommand)]
 		options: ConfigOptions,
 	},
 
-	#[structopt(name = "_controller", setting = structopt::clap::AppSettings::Hidden)]
+	#[clap(name = "_controller", setting = clap::AppSettings::Hidden)]
 	Controller,
 
-	#[structopt(name = "_view", setting = structopt::clap::AppSettings::Hidden)]
+	#[clap(name = "_view", setting = clap::AppSettings::Hidden)]
 	View {
 		room_id: String,
 
@@ -44,20 +44,20 @@ enum Command {
 	},
 }
 
-#[derive(structopt::StructOpt)]
+#[derive(clap::Parser)]
 enum ConfigOptions {
 	ImportE2EKeysBackup {
 		filename: std::path::PathBuf,
 	},
 
-	#[structopt(group = structopt::clap::ArgGroup::with_name("import_secret_storage_key_type").required(true))]
+	#[clap(group = clap::ArgGroup::new("import_secret_storage_key_type").required(true))]
 	ImportSecretStorageKey {
 		id: String,
 
-		#[structopt(group = "import_secret_storage_key_type", long)]
+		#[clap(group = "import_secret_storage_key_type", long)]
 		passphrase: Option<String>,
 
-		#[structopt(group = "import_secret_storage_key_type", long)]
+		#[clap(group = "import_secret_storage_key_type", long)]
 		keyfile: Option<String>,
 	},
 
@@ -65,7 +65,7 @@ enum ConfigOptions {
 }
 
 fn main() -> anyhow::Result<()> {
-	let Options { user_id, command } = structopt::StructOpt::from_args();
+	let Options { user_id, command } = clap::Parser::parse();
 	match command {
 		None => {
 			let mut args = std::env::args_os();
