@@ -33,10 +33,10 @@ enum Command {
 		options: ConfigOptions,
 	},
 
-	#[clap(name = "_controller", setting = clap::AppSettings::Hidden)]
+	#[clap(name = "_controller", hide(true))]
 	Controller,
 
-	#[clap(name = "_view", setting = clap::AppSettings::Hidden)]
+	#[clap(name = "_view", hide(true))]
 	View {
 		room_id: String,
 
