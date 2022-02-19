@@ -9,7 +9,7 @@ pub(crate) fn import(
 		return Err(Error::UnexpectedPemTag(tag));
 	}
 
-	let backup: Backup<'_> = (&*contents).try_into()?;
+	let backup: Backup<'_> = contents[..].try_into()?;
 	let backup = backup.decrypt(password)?;
 
 	let session_data = serde_json::from_slice(&backup).map_err(Error::MalformedJson)?;
@@ -28,6 +28,9 @@ pub(crate) struct BackedUpSessionData {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
+	#[error("could not decrypt backup")]
+	Decrypt(ctr::cipher::StreamCipherError),
+
 	#[error("expected backup to be a JSON blob")]
 	MalformedJson(#[source] serde_json::Error),
 
@@ -64,10 +67,9 @@ impl Backup<'_> {
 				let mut key = [0_u8; 64];
 				pbkdf2::pbkdf2::<hmac::Hmac<sha2::Sha512>>(password.as_bytes(), salt, rounds, &mut key);
 
-				let stream_cipher: aes::Aes256 = aes::NewBlockCipher::new(key[..32].into());
-				let mut stream_cipher: aes::Aes256Ctr = aes::cipher::FromBlockCipher::from_block_cipher(stream_cipher, iv.into());
-
 				let mut mac: hmac::Hmac<sha2::Sha256> = hmac::Mac::new_from_slice(&key[32..]).expect("Hmac::new_from_slice accepts any key length");
+
+				let mut stream_cipher: ctr::Ctr64BE<aes::Aes256> = ctr::cipher::KeyIvInit::new(key[..32].into(), iv.into());
 
 				hmac::Mac::update(&mut mac, &[1]);
 				hmac::Mac::update(&mut mac, &salt[..]);
@@ -77,7 +79,7 @@ impl Backup<'_> {
 				let () = hmac::Mac::verify_slice(mac, &hmac[..]).map_err(Error::SignatureVerificationFailed)?;
 
 				let mut plaintext = ciphertext.to_owned();
-				let () = aes::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, &mut plaintext).map_err(|_| Error::Truncated)?;
+				let () = aes::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, &mut plaintext).map_err(Error::Decrypt)?;
 				Ok(plaintext)
 			},
 		}
@@ -90,10 +92,10 @@ impl<'a> TryFrom<&'a [u8]> for Backup<'a> {
 	fn try_from(backup: &'a [u8]) -> Result<Self, Self::Error> {
 		match backup {
 			[1, rest @ ..] => {
-				let (rest, hmac) = try_split_suffix::<32>(rest).ok_or(Error::Truncated)?;
-				let (salt, rest) = try_split_prefix::<16>(rest).ok_or(Error::Truncated)?;
-				let (iv, rest) = try_split_prefix::<16>(rest).ok_or(Error::Truncated)?;
-				let (rounds, ciphertext) = try_split_prefix::<4>(rest).ok_or(Error::Truncated)?;
+				let (rest, hmac) = crate::std2::try_split_suffix::<32>(rest).ok_or(Error::Truncated)?;
+				let (salt, rest) = crate::std2::try_split_prefix::<16>(rest).ok_or(Error::Truncated)?;
+				let (iv, rest) = crate::std2::try_split_prefix::<16>(rest).ok_or(Error::Truncated)?;
+				let (rounds, ciphertext) = crate::std2::try_split_prefix::<4>(rest).ok_or(Error::Truncated)?;
 				let rounds = u32::from_be_bytes(*rounds);
 				Ok(Backup::V1 {
 					salt,
@@ -108,25 +110,5 @@ impl<'a> TryFrom<&'a [u8]> for Backup<'a> {
 
 			[] => Err(Error::Truncated),
 		}
-	}
-}
-
-fn try_split_prefix<const N: usize>(s: &[u8]) -> Option<(&[u8; N], &[u8])> {
-	if s.len() >= N {
-		let (a, b) = s.split_at(N);
-		Some((a.try_into().expect("guaranteed by split_at"), b))
-	}
-	else {
-		None
-	}
-}
-
-fn try_split_suffix<const N: usize>(s: &[u8]) -> Option<(&[u8], &[u8; N])> {
-	if s.len() >= N {
-		let (a, b) = s.split_at(s.len() - N);
-		Some((a, b.try_into().expect("guaranteed by split_at")))
-	}
-	else {
-		None
 	}
 }

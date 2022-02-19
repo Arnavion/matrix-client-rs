@@ -174,29 +174,14 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 						}
 					},
 
-					crate::AccountDataEvent::M_SecretStorage_Key { id, description: crate::KeyDescription { algorithm, name, passphrase } } => {
+					crate::AccountDataEvent::M_SecretStorage_Key { id, description } => {
 						let mut state = state_manager.load().context("could not load state")?;
 
 						if let Some(secret_storage_key) = state.secret_storage_keys.remove(&id) {
-							let crate::KeyDescription_Algorithm::AesHmacSha2 { iv, mac } = algorithm;
-
-							let key = match (secret_storage_key, passphrase) {
-								(crate::state::SecretStorageKey::Passphrase(state_passphrase), Some(event_passphrase)) => {
-									let crate::KeyDescription_Passphrase::Pbkdf2 { bits, salt, iterations } = event_passphrase;
-									crate::aes_hmac_sha2::derive_key_from_passphrase(
-										state_passphrase.as_bytes(),
-										bits,
-										&salt,
-										iterations,
-										&iv,
-										&mac,
-									).context("could not derive secret storage key from passphrase")?
-								},
-
-								(crate::state::SecretStorageKey::Keyfile(keyfile), _) =>
-									crate::aes_hmac_sha2::derive_key_from_keyfile(keyfile, &iv, &mac).context("could not decode server backup recovery key")?,
-
-								_ => continue,
+							let (name, key) = match secret_storage_key.derive(description) {
+								Ok(key) => key,
+								Err(crate::aes_hmac_sha2::DeriveKeyError::PassphraseParametersNotProvided) => continue,
+								Err(err) => Err(err).context("could not derive secret storage key")?,
 							};
 							keys.insert(id, (name, key));
 						}
@@ -205,22 +190,13 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 					crate::AccountDataEvent::M_MegolmBackup_V1 { encrypted } =>
 						for (key_id, secret) in encrypted {
 							if let Some((_, key)) = keys.get(&key_id) {
-								let crate::AesHmacSha2Secret { ciphertext, iv, mac } =
+								let secret =
 									secret.into_aes_hmac_sha2()
 									.context("could not parse m.megolm_backup.v1 secret")?;
-								let mut stream = base64::decode(ciphertext).context("could not parse m.megolm_backup.v1 secret")?;
-								let () =
-									crate::aes_hmac_sha2::decrypt(
-										key,
-										"m.megolm_backup.v1",
-										&mut stream,
-										&iv,
-										&mac,
-									)
-									.context("could not parse m.megolm_backup.v1 secret")?;
+								let key = secret.decrypt(key, "m.megolm_backup.v1").context("could not parse m.megolm_backup.v1 secret")?;
 								#[allow(unused)] // TODO
 								{
-									backup_key = Some(base64::decode(&stream).context("could not parse decrypted m.megolm_backup.v1 secret")?);
+									backup_key = Some(key);
 								}
 							}
 						},
@@ -228,22 +204,13 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 					crate::AccountDataEvent::M_CrossSigning_Master { encrypted } =>
 						for (key_id, secret) in encrypted {
 							if let Some((_, key)) = keys.get(&key_id) {
-								let crate::AesHmacSha2Secret { ciphertext, iv, mac } =
+								let secret =
 									secret.into_aes_hmac_sha2()
 									.context("could not parse m.cross_signing.master secret")?;
-								let mut stream = base64::decode(ciphertext).context("could not parse m.cross_signing.master secret")?;
-								let () =
-									crate::aes_hmac_sha2::decrypt(
-										key,
-										"m.cross_signing.master",
-										&mut stream,
-										&iv,
-										&mac,
-									)
-									.context("could not parse m.cross_signing.master secret")?;
+								let key = secret.decrypt(key, "m.cross_signing.master").context("could not parse m.cross_signing.master secret")?;
 								#[allow(unused)] // TODO
 								{
-									cross_signing_master_key = Some(base64::decode(&stream).context("could not parse decrypted m.cross_signing.master secret")?);
+									cross_signing_master_key = Some(key);
 								}
 							}
 						},
@@ -251,22 +218,13 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 					crate::AccountDataEvent::M_CrossSigning_SelfSigning { encrypted } =>
 						for (key_id, secret) in encrypted {
 							if let Some((_, key)) = keys.get(&key_id) {
-								let crate::AesHmacSha2Secret { ciphertext, iv, mac } =
+								let secret =
 									secret.into_aes_hmac_sha2()
 									.context("could not parse m.cross_signing.self_signing secret")?;
-								let mut stream = base64::decode(ciphertext).context("could not parse m.cross_signing.self_signing secret")?;
-								let () =
-									crate::aes_hmac_sha2::decrypt(
-										key,
-										"m.cross_signing.self_signing",
-										&mut stream,
-										&iv,
-										&mac,
-									)
-									.context("could not parse m.cross_signing.self_signing secret")?;
+								let key = secret.decrypt(key, "m.cross_signing.self_signing").context("could not parse m.cross_signing.self_signing secret")?;
 								#[allow(unused)] // TODO
 								{
-									cross_signing_self_signing_key = Some(base64::decode(&stream).context("could not parse decrypted m.cross_signing.self_signing secret")?);
+									cross_signing_self_signing_key = Some(key);
 								}
 							}
 						},
@@ -274,22 +232,13 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 					crate::AccountDataEvent::M_CrossSigning_UserSigning { encrypted } =>
 						for (key_id, secret) in encrypted {
 							if let Some((_, key)) = keys.get(&key_id) {
-								let crate::AesHmacSha2Secret { ciphertext, iv, mac } =
+								let secret =
 									secret.into_aes_hmac_sha2()
 									.context("could not parse m.cross_signing.user_signing secret")?;
-								let mut stream = base64::decode(ciphertext).context("could not parse m.cross_signing.user_signing secret")?;
-								let () =
-									crate::aes_hmac_sha2::decrypt(
-										key,
-										"m.cross_signing.user_signing",
-										&mut stream,
-										&iv,
-										&mac,
-									)
-									.context("could not parse m.cross_signing.user_signing secret")?;
+								let key = secret.decrypt(key, "m.cross_signing.user_signing").context("could not parse m.cross_signing.user_signing secret")?;
 								#[allow(unused)] // TODO
 								{
-									cross_signing_user_signing_key = Some(base64::decode(&stream).context("could not parse decrypted m.cross_signing.user_signing secret")?);
+									cross_signing_user_signing_key = Some(key);
 								}
 							}
 						},

@@ -3,6 +3,7 @@
 #![allow(
 	clippy::default_trait_access,
 	clippy::similar_names,
+	clippy::let_and_return,
 	clippy::let_underscore_drop,
 	clippy::let_unit_value,
 	clippy::shadow_unrelated,
@@ -14,6 +15,7 @@ mod controller;
 mod e2e_keys_backup;
 mod http_client;
 mod state;
+mod std2;
 mod view;
 
 use anyhow::Context;
@@ -448,8 +450,10 @@ struct KeyDescription {
 enum KeyDescription_Algorithm {
 	#[serde(rename = "m.secret_storage.v1.aes-hmac-sha2")]
 	AesHmacSha2 {
-		iv: String,
-		mac: String,
+		#[serde(deserialize_with = "deserialize_base64_fixed_len")]
+		iv: [u8; 16],
+		#[serde(deserialize_with = "deserialize_base64_mac")]
+		mac: hmac::digest::CtOutput<hmac::Hmac<sha2::Sha256>>,
 	},
 }
 
@@ -473,9 +477,12 @@ struct Secret {
 
 #[derive(serde::Deserialize)]
 struct AesHmacSha2Secret {
-	ciphertext: String,
-	iv: String,
-	mac: String,
+	#[serde(deserialize_with = "deserialize_base64_variable_len")]
+	ciphertext: Vec<u8>,
+	#[serde(deserialize_with = "deserialize_base64_fixed_len")]
+	iv: [u8; 16],
+	#[serde(deserialize_with = "deserialize_base64_mac")]
+	mac: hmac::digest::CtOutput<hmac::Hmac<sha2::Sha256>>,
 }
 
 impl Secret {
@@ -486,4 +493,35 @@ impl Secret {
 			.context("could not reinterpret as m.secret_storage.v1.aes-hmac-sha2")?;
 		Ok(secret)
 	}
+}
+
+fn deserialize_base64_fixed_len<'de, const N: usize, D>(deserializer: D) -> Result<[u8; N], D::Error> where D: serde::Deserializer<'de> {
+	let result = deserialize_base64_variable_len(deserializer)?;
+	let result = result[..].try_into().map_err(serde::de::Error::custom)?;
+	Ok(result)
+}
+
+fn deserialize_base64_mac<'de, D>(deserializer: D) -> Result<hmac::digest::CtOutput<hmac::Hmac<sha2::Sha256>>, D::Error> where D: serde::Deserializer<'de> {
+	let result: [u8; 32] = deserialize_base64_fixed_len(deserializer)?;
+	let result: hmac::digest::Output<hmac::Hmac<sha2::Sha256>> = result.into();
+	let result = result.into();
+	Ok(result)
+}
+
+fn deserialize_base64_variable_len<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error> where D: serde::Deserializer<'de> {
+	struct Visitor;
+
+	impl<'de> serde::de::Visitor<'de> for Visitor {
+		type Value = Vec<u8>;
+
+		fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+			f.write_str("base64-encoded string")
+		}
+
+		fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> where E: serde::de::Error {
+			base64::decode(v).map_err(serde::de::Error::custom)
+		}
+	}
+
+	deserializer.deserialize_str(Visitor)
 }

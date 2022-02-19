@@ -42,7 +42,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 					format!("{} ({room_id})", room_heroes.join(", ")).into()
 				}
 				else {
-					(&*room_id).into()
+					room_id.into()
 				};
 
 			let _ = write!(stdout, "\x1B]2;{room_display_name}\x1B\\");
