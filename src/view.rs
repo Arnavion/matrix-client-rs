@@ -119,12 +119,21 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 
 		match event {
 			crate::Event::M_Room_CanonicalAlias { alias } => {
-				write_with_sender(
-					&mut stdout, &sender, &user_power_levels, user_power_level_default,
-					SenderDecoration::Event,
-					format_args!("set room canonical alias to {alias}\n"),
-				);
-				room_canonical_alias = Some(alias);
+				if let Some(alias) = &alias {
+					write_with_sender(
+						&mut stdout, &sender, &user_power_levels, user_power_level_default,
+						SenderDecoration::Event,
+						format_args!("set room canonical alias to {alias}\n"),
+					);
+				}
+				else {
+					write_with_sender(
+						&mut stdout, &sender, &user_power_levels, user_power_level_default,
+						SenderDecoration::Event,
+						format_args!("removed room canonical alias\n"),
+					);
+				}
+				room_canonical_alias = alias;
 				room_display_name_changed = true;
 			},
 
