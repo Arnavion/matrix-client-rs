@@ -88,7 +88,7 @@ fn main() -> anyhow::Result<()> {
 			use std::io::Write;
 
 			let backup = std::fs::read(filename).context("could not read file")?;
-			let password = rpassword::read_password_from_tty(Some("Enter password: ")).context("could not read password")?;
+			let password = rpassword::prompt_password("Enter password: ").context("could not read password")?;
 
 			let backed_up_session_data = e2e_keys_backup::import(&backup, &password)?;
 

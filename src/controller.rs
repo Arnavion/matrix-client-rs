@@ -459,7 +459,7 @@ async fn login(
 			};
 
 			let access_token = loop {
-				let password = rpassword::read_password_from_tty(Some("Enter password: ")).context("could not read password")?;
+				let password = rpassword::prompt_password("Enter password: ").context("could not read password")?;
 
 				let login_response =
 					client.request(homeserver_base_url, "/_matrix/client/r0/login", None, crate::http_client::RequestMethod::Post(LoginRequest {
