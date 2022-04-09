@@ -317,6 +317,7 @@ define_events! {
 	"m.room.name" => M_Room_Name { name: String },
 	"m.room.power_levels" => M_Room_PowerLevels { users: std::collections::BTreeMap<String, usize>, users_default: Option<usize> },
 	"m.room.related_groups" => M_Room_RelatedGroups { groups: Vec<String> },
+	"m.room.tombstone" => M_Room_Tombstone { body: String, replacement_room: String },
 	"m.room.topic" => M_Room_Topic { topic: String },
 }
 

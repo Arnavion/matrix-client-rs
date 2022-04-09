@@ -24,6 +24,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 
 	let mut room_name = None;
 	let mut room_canonical_alias: Option<String> = None;
+	let mut room_is_tombstoned = false;
 	let mut room_display_name_changed = true;
 
 	let mut user_power_levels: std::collections::BTreeMap<String, usize> = Default::default();
@@ -43,6 +44,13 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 				}
 				else {
 					room_id.into()
+				};
+			let room_display_name: std::borrow::Cow<'_, str> =
+				if room_is_tombstoned {
+					format!("\u{1faa6} {room_display_name} \u{1faa6}").into()
+				}
+				else {
+					room_display_name
 				};
 
 			let _ = write!(stdout, "\x1B]2;{room_display_name}\x1B\\");
@@ -256,6 +264,17 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 					SenderDecoration::Event,
 					format_args!("set room related groups to {groups}\n", groups = groups.join(", ")),
 				),
+
+			crate::Event::M_Room_Tombstone { body, replacement_room } => {
+				write_with_sender(
+					&mut stdout, &sender, &user_power_levels, user_power_level_default,
+					SenderDecoration::Event,
+					format_args!("tombstoned room with replacement {replacement_room}: "),
+				);
+				print_multiline(&mut stdout, &body);
+				room_is_tombstoned = true;
+				room_display_name_changed = true;
+			},
 
 			crate::Event::M_Room_Topic { topic } => {
 				write_with_sender(
