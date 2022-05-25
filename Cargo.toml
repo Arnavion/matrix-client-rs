@@ -39,7 +39,12 @@ hyper-rustls = { version = "0.23", default-features = false, features = [
 	"tls12",
 	"webpki-tokio",
 ] }
-nix = { version = "0.23", default-features = false }
+nix = { version = "0.24", default-features = false, features = [
+	"feature", # for nix::unistd::sysconf, nix::unistd::SysconfVar
+	"fs", # for nix::sys::stat, nix::unistd::mkfifo
+	"hostname", # for nix::unistd::gethostname
+	"process", # for nix::unistd::Pid
+] }
 pbkdf2 = { version = "0.11", default-features = false }
 pem = { version = "1", default-features = false }
 rpassword = { version = "6", default-features = false }
