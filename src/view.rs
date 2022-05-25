@@ -3,11 +3,9 @@ use anyhow::Context;
 pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyhow::Result<()> {
 	use std::io::Write;
 
-	let stdout = std::io::stdout();
-	let mut stdout = stdout.lock();
+	let mut stdout = std::io::stdout().lock();
 
-	let stderr = std::io::stderr();
-	let mut stderr = stderr.lock();
+	let mut stderr = std::io::stderr().lock();
 
 	let tmux_pane = std::env::var_os("TMUX_PANE").context("could not read TMUX_PANE env var")?;
 

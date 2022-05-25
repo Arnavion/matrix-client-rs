@@ -95,8 +95,7 @@ fn main() -> anyhow::Result<()> {
 			let mut state_manager = state::Manager::new(&user_id).context("could not create state manager")?;
 			let mut state = state_manager.load().context("could not load state")?;
 
-			let stderr = std::io::stderr();
-			let mut stderr = stderr.lock();
+			let mut stderr = std::io::stderr().lock();
 
 			for e2e_keys_backup::BackedUpSessionData { room_id, session_id, session_data } in backed_up_session_data {
 				let _ = writeln!(stderr, "Importing session data for room {room_id} session {session_id} ...");
@@ -114,8 +113,7 @@ fn main() -> anyhow::Result<()> {
 			let mut state_manager = state::Manager::new(&user_id).context("could not create state manager")?;
 			let mut state = state_manager.load().context("could not load state")?;
 
-			let stderr = std::io::stderr();
-			let mut stderr = stderr.lock();
+			let mut stderr = std::io::stderr().lock();
 
 			if let Some(passphrase) = passphrase {
 				state.secret_storage_keys.insert(id, state::SecretStorageKey::Passphrase(passphrase));
@@ -132,8 +130,7 @@ fn main() -> anyhow::Result<()> {
 		Some(Command::Config { options: ConfigOptions::Logout }) => {
 			use std::io::Write;
 
-			let stderr = std::io::stderr();
-			let mut stderr = stderr.lock();
+			let mut stderr = std::io::stderr().lock();
 
 			let mut state_manager = state::Manager::new(&user_id).context("could not create state manager")?;
 			let mut state = state_manager.load().context("could not load state")?;

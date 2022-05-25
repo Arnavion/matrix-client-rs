@@ -15,11 +15,9 @@ pub(crate) fn run(user_id: String) -> anyhow::Result<()> {
 async fn run_inner(user_id: String) -> anyhow::Result<()> {
 	use std::io::Write;
 
-	let stdout = std::io::stdout();
-	let mut stdout = stdout.lock();
+	let mut stdout = std::io::stdout().lock();
 
-	let stderr = std::io::stderr();
-	let mut stderr = stderr.lock();
+	let mut stderr = std::io::stderr().lock();
 
 	let _ = write!(stdout, "\x1B]2;{user_id}\x1B\\");
 	let _ = stdout.flush();
