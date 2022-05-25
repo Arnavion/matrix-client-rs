@@ -242,11 +242,13 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 
 				let mut result = String::new();
 				for (std::cmp::Reverse(power_level), mut users) in users_by_power_level {
+					use std::fmt::Write;
+
 					if !result.is_empty() {
 						result.push_str("; ");
 					}
 					users.sort();
-					result.push_str(&format!("{power_level}: {}", users.join(", ")));
+					write!(result, "{power_level}: {}", users.join(", ")).unwrap();
 				}
 
 				write_with_sender(
