@@ -39,8 +39,7 @@ hyper-rustls = { version = "0.23", default-features = false, features = [
 	"tls12",
 	"webpki-tokio",
 ] }
-nix = { version = "0.24", default-features = false, features = [
-	"feature", # for nix::unistd::sysconf, nix::unistd::SysconfVar
+nix = { version = "0.25", default-features = false, features = [
 	"fs", # for nix::sys::stat, nix::unistd::mkfifo
 	"hostname", # for nix::unistd::gethostname
 	"process", # for nix::unistd::Pid

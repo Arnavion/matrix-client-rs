@@ -445,14 +445,7 @@ async fn login(
 			};
 
 			let initial_device_display_name = {
-				let hostname_max_len =
-					nix::unistd::sysconf(nix::unistd::SysconfVar::HOST_NAME_MAX).context("could not get hostname")?
-					.unwrap_or(64);
-				let hostname_max_len: usize =
-					hostname_max_len.try_into()
-					.context("could not get hostname")?;
-				let mut hostname = vec![0_u8; hostname_max_len + 1];
-				let hostname = nix::unistd::gethostname(&mut hostname).context("could not get hostname")?;
+				let hostname = nix::unistd::gethostname().context("could not get hostname")?;
 				format!("matrix-client ({})", hostname.to_string_lossy())
 			};
 
