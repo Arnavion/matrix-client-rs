@@ -302,12 +302,12 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 					let arg0 = args.next().context("argv[0] is not set")?;
 
 					let mut view = crate::tmux(&user_id)?;
-					view.args(&["new-window", "-d"]);
+					view.args(["new-window", "-d"]);
 					if std::env::var_os("DEBUG").is_some() {
-						view.args(&["-e", "DEBUG=1"]);
+						view.args(["-e", "DEBUG=1"]);
 					}
 					view.arg(arg0);
-					view.args(&[&user_id, "_view", entry.key()]);
+					view.args([&user_id, "_view", entry.key()]);
 					view.arg(&format!("/proc/{}/fd/{view_fd}", nix::unistd::Pid::this().as_raw()));
 					let _ =
 						view.output()

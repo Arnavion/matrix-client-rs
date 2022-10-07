@@ -55,7 +55,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 			let _ = stdout.flush();
 
 			let mut rename_command = crate::tmux(user_id)?;
-			rename_command.args(&["rename-window", "-t"]);
+			rename_command.args(["rename-window", "-t"]);
 			rename_command.arg(&tmux_pane);
 			rename_command.arg(&*room_display_name);
 			let _ = rename_command.output().context("could not rename tmux window to new room display name")?;

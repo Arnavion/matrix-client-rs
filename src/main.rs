@@ -72,12 +72,12 @@ fn main() -> anyhow::Result<()> {
 			let arg0 = args.next().context("argv[0] is not set")?;
 
 			let mut controller = tmux(&user_id)?;
-			controller.args(&["new-session", "-s", "matrix-client", "-n", &user_id]);
+			controller.args(["new-session", "-s", "matrix-client", "-n", &user_id]);
 			if std::env::var_os("DEBUG").is_some() {
-				controller.args(&["-e", "DEBUG=1"]);
+				controller.args(["-e", "DEBUG=1"]);
 			}
 			controller.arg(arg0);
-			controller.args(&[&user_id, "_controller"]);
+			controller.args([&user_id, "_controller"]);
 			let err = std::os::unix::process::CommandExt::exec(&mut controller);
 			return Err(err).context("execvp failed")?;
 		},
