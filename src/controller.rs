@@ -308,7 +308,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 					}
 					view.arg(arg0);
 					view.args([&user_id, "_view", entry.key()]);
-					view.arg(&format!("/proc/{}/fd/{view_fd}", nix::unistd::Pid::this().as_raw()));
+					view.arg(format!("/proc/{}/fd/{view_fd}", nix::unistd::Pid::this().as_raw()));
 					let _ =
 						view.output()
 						.with_context(|| format!("could not create view for {}", entry.key()))?;
