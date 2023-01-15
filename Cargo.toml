@@ -9,7 +9,7 @@ aes = { version = "0.8", default-features = false }
 anyhow = { version = "1", default-features = false, features = [
 	"std",
 ] }
-base64 = { version = "0.13", default-features = false, features = [
+base64 = { version = "0.21", default-features = false, features = [
 	"std",
 ] }
 bs58 = { version = "0.4", default-features = false, features = [
@@ -19,7 +19,7 @@ chrono = { version = "0.4", default-features = false, features = [
 	"clock", # for chrono::Utc::now()
 	"serde", # for chrono::serde
 ] }
-clap = { version = "3", default-features = false, features = [
+clap = { version = "4", default-features = false, features = [
 	"derive", # for #[derive(clap::Parser)]
 	"std", # "`std` feature is currently required to build `clap`"
 ] }
@@ -39,7 +39,7 @@ hyper-rustls = { version = "0.23", default-features = false, features = [
 	"tls12",
 	"webpki-tokio",
 ] }
-nix = { version = "0.25", default-features = false, features = [
+nix = { version = "0.26", default-features = false, features = [
 	"fs", # for nix::sys::stat, nix::unistd::mkfifo
 	"hostname", # for nix::unistd::gethostname
 	"process", # for nix::unistd::Pid

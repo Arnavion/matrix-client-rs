@@ -144,7 +144,7 @@ impl crate::AesHmacSha2Secret {
 		let mut stream = ciphertext;
 		let () = aes::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, &mut stream).map_err(DecryptError::Decrypt)?;
 
-		let plaintext = base64::decode(&stream).map_err(DecryptError::MalformedPlaintextBase64)?;
+		let plaintext = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &stream).map_err(DecryptError::MalformedPlaintextBase64)?;
 
 		Ok(plaintext)
 	}

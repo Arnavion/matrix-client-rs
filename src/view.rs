@@ -105,7 +105,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 		};
 
 		let origin_server_ts = origin_server_ts.with_timezone(&chrono::Local);
-		let origin_server_date = origin_server_ts.date();
+		let origin_server_date = origin_server_ts.date_naive();
 		if last_event_origin_server_date != Some(origin_server_date) {
 			if last_event_origin_server_date.is_some() {
 				let _ = writeln!(stdout);

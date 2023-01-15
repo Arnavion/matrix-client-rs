@@ -515,7 +515,7 @@ fn deserialize_base64_variable_len<'de, D>(deserializer: D) -> Result<Vec<u8>, D
 		}
 
 		fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> where E: serde::de::Error {
-			base64::decode(v).map_err(serde::de::Error::custom)
+			base64::Engine::decode(&base64::engine::general_purpose::STANDARD, v).map_err(serde::de::Error::custom)
 		}
 	}
 
