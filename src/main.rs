@@ -22,21 +22,21 @@ use anyhow::Context;
 struct Options {
 	user_id: String,
 
-	#[clap(subcommand)]
+	#[command(subcommand)]
 	command: Option<Command>,
 }
 
 #[derive(clap::Parser)]
 enum Command {
 	Config {
-		#[clap(subcommand)]
+		#[command(subcommand)]
 		options: ConfigOptions,
 	},
 
-	#[clap(name = "_controller", hide(true))]
+	#[command(name = "_controller", hide(true))]
 	Controller,
 
-	#[clap(name = "_view", hide(true))]
+	#[command(name = "_view", hide(true))]
 	View {
 		room_id: String,
 
@@ -50,14 +50,14 @@ enum ConfigOptions {
 		filename: std::path::PathBuf,
 	},
 
-	#[clap(group = clap::ArgGroup::new("import_secret_storage_key_type").required(true))]
+	#[command(group = clap::ArgGroup::new("import_secret_storage_key_type").required(true))]
 	ImportSecretStorageKey {
 		id: String,
 
-		#[clap(group = "import_secret_storage_key_type", long)]
+		#[arg(group = "import_secret_storage_key_type", long)]
 		passphrase: Option<String>,
 
-		#[clap(group = "import_secret_storage_key_type", long)]
+		#[arg(group = "import_secret_storage_key_type", long)]
 		keyfile: Option<String>,
 	},
 
