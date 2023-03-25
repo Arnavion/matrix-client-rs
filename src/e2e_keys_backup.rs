@@ -4,12 +4,14 @@ pub(crate) fn import(
 	backup: &[u8],
 	password: &str,
 ) -> Result<Vec<BackedUpSessionData>, Error> {
-	let pem::Pem { tag, contents } = pem::parse(backup).map_err(Error::MalformedPem)?;
+	let backup = pem::parse(backup).map_err(Error::MalformedPem)?;
+
+	let tag = backup.tag();
 	if tag != "MEGOLM SESSION DATA" {
-		return Err(Error::UnexpectedPemTag(tag));
+		return Err(Error::UnexpectedPemTag(tag.to_owned()));
 	}
 
-	let backup: Backup<'_> = contents[..].try_into()?;
+	let backup: Backup<'_> = backup.contents()[..].try_into()?;
 	let backup = backup.decrypt(password)?;
 
 	let session_data = serde_json::from_slice(&backup).map_err(Error::MalformedJson)?;
