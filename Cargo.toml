@@ -44,7 +44,9 @@ nix = { version = "0.26", default-features = false, features = [
 	"hostname", # for nix::unistd::gethostname
 	"process", # for nix::unistd::Pid
 ] }
-pbkdf2 = { version = "0.11", default-features = false }
+pbkdf2 = { version = "0.12", default-features = false, features = [
+	"hmac", # for pbkdf2::pbkdf2_hmac_array
+] }
 pem = { version = "2", default-features = false, features = [
 	"std", # for pem::Error: std::error::Error
 ] }

@@ -17,8 +17,7 @@ impl crate::state::SecretStorageKey {
 					return Err(DeriveKeyError::InvalidLength { expected: 32, actual: key_len });
 				}
 
-				let mut key = [0_u8; 32];
-				pbkdf2::pbkdf2::<hmac::Hmac<sha2::Sha512>>(state_passphrase.as_bytes(), salt.as_bytes(), iterations, &mut key);
+				let key = pbkdf2::pbkdf2_hmac_array::<sha2::Sha512, 32>(state_passphrase.as_bytes(), salt.as_bytes(), iterations);
 
 				validate_key(&key, &iv, &expected_mac)?
 			},

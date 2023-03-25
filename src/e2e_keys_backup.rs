@@ -66,8 +66,7 @@ impl Backup<'_> {
 	fn decrypt(&self, password: &str) -> Result<Vec<u8>, Error> {
 		match *self {
 			Backup::V1 { salt, iv, rounds, ciphertext, hmac } => {
-				let mut key = [0_u8; 64];
-				pbkdf2::pbkdf2::<hmac::Hmac<sha2::Sha512>>(password.as_bytes(), salt, rounds, &mut key);
+				let key = pbkdf2::pbkdf2_hmac_array::<sha2::Sha512, 64>(password.as_bytes(), salt, rounds);
 
 				let mut mac: hmac::Hmac<sha2::Sha256> = hmac::Mac::new_from_slice(&key[32..]).expect("Hmac::new_from_slice accepts any key length");
 
