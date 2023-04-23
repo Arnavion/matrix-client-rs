@@ -34,7 +34,7 @@ hyper = { version = "0.14", default-features = false, features = [
 	"http1",
 	"client",
 ] }
-hyper-rustls = { version = "0.23", default-features = false, features = [
+hyper-rustls = { version = "0.24", default-features = false, features = [
 	"http1",
 	"tls12",
 	"webpki-tokio",
