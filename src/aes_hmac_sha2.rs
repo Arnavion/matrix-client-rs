@@ -34,7 +34,7 @@ impl crate::state::SecretStorageKey {
 				let key_len =
 					bs58::decode(encoded_key)
 					.with_alphabet(bs58::Alphabet::BITCOIN)
-					.into(&mut decoded_key)
+					.onto(&mut decoded_key)
 					.map_err(DeriveKeyError::InvalidBase58)?;
 				if key_len != decoded_key.len() {
 					return Err(DeriveKeyError::InvalidLength { expected: decoded_key.len(), actual: key_len });
