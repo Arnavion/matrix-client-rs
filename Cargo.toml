@@ -1,7 +1,10 @@
 [package]
 name = "matrix-client"
 version = "0.1.0"
+license = "Apache-2.0"
+authors = ["Arnav Singh <me@arnavion.dev>"]
 edition = "2021"
+publish = false
 
 
 [dependencies]
