@@ -50,8 +50,8 @@ nix = { version = "0.26", default-features = false, features = [
 pbkdf2 = { version = "0.12", default-features = false, features = [
 	"hmac", # for pbkdf2::pbkdf2_hmac_array
 ] }
-pem = { version = "2", default-features = false, features = [
-	"std", # for pem::Error: std::error::Error
+pem = { version = "3", default-features = false, features = [
+	"std", # for pem::PemError: std::error::Error
 ] }
 rpassword = { version = "7", default-features = false }
 serde = { version = "1.0.103", default-features = false, features = [
