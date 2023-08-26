@@ -78,7 +78,7 @@ fn main() -> anyhow::Result<()> {
 			controller.arg(arg0);
 			controller.args([&user_id, "_controller"]);
 			let err = std::os::unix::process::CommandExt::exec(&mut controller);
-			return Err(err).context("execvp failed")?;
+			return Err(err).context("execvp failed");
 		},
 
 		Some(Command::Config { options: ConfigOptions::ImportE2EKeysBackup { filename } }) => {
