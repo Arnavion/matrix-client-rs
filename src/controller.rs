@@ -296,7 +296,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 						.open(fifo_path)
 						.with_context(|| format!("could not create view fd for {}", entry.key()))?;
 					drop(tempdir);
-					let view_fd = std::os::unix::io::AsRawFd::as_raw_fd(&fifo);
+					let view_fd = std::os::fd::AsRawFd::as_raw_fd(&fifo);
 
 					let mut args = std::env::args_os();
 					let arg0 = args.next().context("argv[0] is not set")?;
