@@ -1,7 +1,10 @@
 use anyhow::Context;
 
 pub(crate) struct Client {
-	inner: hyper::Client<hyper_rustls::HttpsConnector<hyper::client::connect::HttpConnector>, hyper::Body>,
+	inner: hyper_util::client::legacy::Client<
+		hyper_rustls::HttpsConnector<hyper_util::client::legacy::connect::HttpConnector>,
+		http_body_util::Full<std::collections::VecDeque<u8>>,
+	>,
 	user_agent: http::HeaderValue,
 }
 
@@ -14,7 +17,7 @@ impl Client {
 			.enable_http1()
 			.build();
 
-		let inner = hyper::Client::builder().build(connector);
+		let inner = hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new()).build(connector);
 
 		Client {
 			inner,
@@ -41,10 +44,12 @@ impl Client {
 		// This fn encapsulates the non-generic parts of `request` to reduce code size from monomorphization.
 		async fn request_inner(
 			client: &Client,
-			mut req: hyper::Request<hyper::Body>,
+			req: hyper::Request<Vec<u8>>,
 			uri: http::Uri,
 			auth_header: Option<http::HeaderValue>,
 		) -> anyhow::Result<Response> {
+			let mut req = req.map(|body| http_body_util::Full::new(body.into()));
+
 			*req.uri_mut() = uri;
 
 			if let Some(auth_header) = auth_header {
@@ -73,7 +78,7 @@ impl Client {
 				if content_type.as_ref() != Some(application_json()) {
 					return Err(anyhow::anyhow!("could not execute request: unexpected content-type {content_type:?}"));
 				}
-				let body = hyper::body::aggregate(body).await.context("could not execute request: could not read response body")?;
+				let body = http_body_util::BodyExt::collect(body).await.context("could not execute request: could not read response body")?.aggregate();
 				let body = hyper::body::Buf::reader(body);
 				let body: serde_json::Value = serde_json::from_reader(body).context("could not execute request")?;
 				Response::Json(body)
@@ -93,7 +98,7 @@ impl Client {
 				},
 				RequestMethod::Post(body) => {
 					let body = serde_json::to_vec(&body).context("could not request")?;
-					let mut req = http::Request::new(body.into());
+					let mut req = http::Request::new(body);
 					*req.method_mut() = http::Method::POST;
 					req.headers_mut().append(http::header::CONTENT_TYPE, application_json().clone());
 					req
