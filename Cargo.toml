@@ -71,3 +71,17 @@ tokio = { version = "1", default-features = false, features = [
 	"rt",
 	"time",
 ] }
+
+
+[lints.rust]
+rust_2018_idioms = "deny"
+warnings = "deny"
+
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+default_trait_access = "allow"
+similar_names = "allow"
+let_unit_value = "allow"
+too_many_lines = "allow"

@@ -1,12 +1,3 @@
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
-#![allow(
-	clippy::default_trait_access,
-	clippy::similar_names,
-	clippy::let_unit_value,
-	clippy::too_many_lines,
-)]
-
 mod aes_hmac_sha2;
 mod controller;
 mod e2e_keys_backup;
