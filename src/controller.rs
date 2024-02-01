@@ -19,7 +19,12 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 	let mut stderr = std::io::stderr().lock();
 
-	_ = write!(stdout, "\x1B]2;{user_id}\x1B\\");
+	let mut terminfo = terminal::terminfo::Terminfo::from_env().context("could not get terminfo")?;
+	let (to_status_line, from_status_line) = terminfo.write_status_line();
+
+	_ = stdout.write_all(to_status_line);
+	_ = stdout.write_all(user_id.as_bytes());
+	_ = stdout.write_all(from_status_line);
 	_ = stdout.flush();
 
 	let mut state_manager = crate::state::Manager::new(&user_id).context("could not create state manager")?;

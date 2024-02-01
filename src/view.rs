@@ -7,6 +7,9 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 
 	let mut stderr = std::io::stderr().lock();
 
+	let mut terminfo = terminal::terminfo::Terminfo::from_env().context("could not get terminfo")?;
+	let (to_status_line, from_status_line) = terminfo.write_status_line();
+
 	let tmux_pane = std::env::var_os("TMUX_PANE").context("could not read TMUX_PANE env var")?;
 
 	let lines = std::fs::File::open(lines).context("could not open lines file")?;
@@ -51,7 +54,9 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 					room_display_name
 				};
 
-			_ = write!(stdout, "\x1B]2;{room_display_name}\x1B\\");
+			_ = stdout.write_all(to_status_line);
+			_ = stdout.write_all(room_display_name.as_bytes());
+			_ = stdout.write_all(from_status_line);
 			_ = stdout.flush();
 
 			let mut rename_command = crate::tmux(user_id)?;
