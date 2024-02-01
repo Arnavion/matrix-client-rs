@@ -95,13 +95,13 @@ fn main() -> anyhow::Result<()> {
 			let mut stderr = std::io::stderr().lock();
 
 			for e2e_keys_backup::BackedUpSessionData { room_id, session_id, session_data } in backed_up_session_data {
-				let _ = writeln!(stderr, "Importing session data for room {room_id} session {session_id} ...");
+				_ = writeln!(stderr, "Importing session data for room {room_id} session {session_id} ...");
 				state.e2e_keys.entry(room_id).or_default().insert(session_id, session_data);
 			}
 
-			let () = state_manager.save(&state).context("could not save state")?;
+			() = state_manager.save(&state).context("could not save state")?;
 
-			let _ = writeln!(stderr, "Done.");
+			_ = writeln!(stderr, "Done.");
 		},
 
 		Some(Command::Config { options: ConfigOptions::ImportSecretStorageKey { id, passphrase, keyfile } }) => {
@@ -119,9 +119,9 @@ fn main() -> anyhow::Result<()> {
 				state.secret_storage_keys.insert(id, state::SecretStorageKey::Keyfile(keyfile));
 			}
 
-			let () = state_manager.save(&state).context("could not save state")?;
+			() = state_manager.save(&state).context("could not save state")?;
 
-			let _ = writeln!(stderr, "Done.");
+			_ = writeln!(stderr, "Done.");
 		},
 
 		Some(Command::Config { options: ConfigOptions::Logout }) => {
@@ -137,9 +137,9 @@ fn main() -> anyhow::Result<()> {
 				// https://matrix.org/docs/spec/client_server/r0.6.1#id206
 			}
 
-			let () = state_manager.save(&state).context("could not save state")?;
+			() = state_manager.save(&state).context("could not save state")?;
 
-			let _ = writeln!(stderr, "Done.");
+			_ = writeln!(stderr, "Done.");
 		},
 
 		Some(Command::Controller) => controller::run(user_id)?,

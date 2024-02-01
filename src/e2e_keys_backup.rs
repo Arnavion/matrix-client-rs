@@ -77,10 +77,10 @@ impl Backup<'_> {
 				hmac::Mac::update(&mut mac, &iv[..]);
 				hmac::Mac::update(&mut mac, &rounds.to_be_bytes());
 				hmac::Mac::update(&mut mac, ciphertext);
-				let () = hmac::Mac::verify_slice(mac, &hmac[..]).map_err(Error::SignatureVerificationFailed)?;
+				() = hmac::Mac::verify_slice(mac, &hmac[..]).map_err(Error::SignatureVerificationFailed)?;
 
 				let mut plaintext = ciphertext.to_owned();
-				let () = aes::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, &mut plaintext).map_err(Error::Decrypt)?;
+				() = aes::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, &mut plaintext).map_err(Error::Decrypt)?;
 				Ok(plaintext)
 			},
 		}

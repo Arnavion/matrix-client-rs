@@ -51,14 +51,14 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 					room_display_name
 				};
 
-			let _ = write!(stdout, "\x1B]2;{room_display_name}\x1B\\");
-			let _ = stdout.flush();
+			_ = write!(stdout, "\x1B]2;{room_display_name}\x1B\\");
+			_ = stdout.flush();
 
 			let mut rename_command = crate::tmux(user_id)?;
 			rename_command.args(["rename-window", "-t"]);
 			rename_command.arg(&tmux_pane);
 			rename_command.arg(&*room_display_name);
-			let _ = rename_command.output().context("could not rename tmux window to new room display name")?;
+			_ = rename_command.output().context("could not rename tmux window to new room display name")?;
 
 			room_display_name_changed = false;
 		}
@@ -69,7 +69,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 			.context("could not read line from lines file")?;
 
 		if std::env::var_os("DEBUG").is_some() {
-			let _ = writeln!(stderr, "{line:?}");
+			_ = writeln!(stderr, "{line:?}");
 		}
 
 		let (origin_server_ts, sender, event) = match line {
@@ -108,14 +108,14 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 		let origin_server_date = origin_server_ts.date_naive();
 		if last_event_origin_server_date != Some(origin_server_date) {
 			if last_event_origin_server_date.is_some() {
-				let _ = writeln!(stdout);
+				_ = writeln!(stdout);
 			}
-			let _ = writeln!(stdout, "--- {origin_server_date} ---");
+			_ = writeln!(stdout, "--- {origin_server_date} ---");
 
 			last_event_origin_server_date = Some(origin_server_date);
 		}
 
-		let _ = write!(stdout, "[{}] ", origin_server_ts.format_with_items([
+		_ = write!(stdout, "[{}] ", origin_server_ts.format_with_items([
 			chrono::format::Item::Numeric(chrono::format::Numeric::Hour, chrono::format::Pad::Zero),
 			chrono::format::Item::Literal(":"),
 			chrono::format::Item::Numeric(chrono::format::Numeric::Minute, chrono::format::Pad::Zero),
@@ -299,23 +299,19 @@ fn print_multiline(stdout: &mut impl std::io::Write, s: &str) {
 	if let Some((mut line, rest)) = s.split_once('\n') {
 		let mut rest = Some(rest);
 
-		let _ = writeln!(stdout, ">");
+		_ = writeln!(stdout, ">");
 
 		loop {
-			let _ = writeln!(stdout, "           | {line}");
+			_ = writeln!(stdout, "           | {line}");
 
-			if let Some(rest_) = rest {
-				let (next_line, next_rest) = rest_.split_once('\n').map_or((rest_, None), |(line, rest)| (line, Some(rest)));
-				line = next_line;
-				rest = next_rest;
-			}
-			else {
-				break;
-			}
+			let Some(rest_) = rest else { break; };
+			let (next_line, next_rest) = rest_.split_once('\n').map_or((rest_, None), |(line, rest)| (line, Some(rest)));
+			line = next_line;
+			rest = next_rest;
 		}
 	}
 	else {
-		let _ = writeln!(stdout, "{s}");
+		_ = writeln!(stdout, "{s}");
 	}
 }
 
@@ -340,11 +336,11 @@ fn write_with_sender(
 
 	let user_power_level = user_power_levels.get(sender).copied().unwrap_or(user_power_level_default);
 	if user_power_level == user_power_level_default {
-		let _ = write!(stdout, "{decoration_start}{sender}{decoration_end}");
+		_ = write!(stdout, "{decoration_start}{sender}{decoration_end}");
 	}
 	else {
-		let _ = write!(stdout, "{decoration_start}[{user_power_level}] {sender}{decoration_end}");
+		_ = write!(stdout, "{decoration_start}[{user_power_level}] {sender}{decoration_end}");
 	}
 
-	let _ = write!(stdout, " {rest}");
+	_ = write!(stdout, " {rest}");
 }

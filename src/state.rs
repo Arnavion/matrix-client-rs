@@ -32,7 +32,7 @@ impl Manager {
 
 	pub(crate) fn load(&mut self) -> Result<State, Error> {
 		if let Some(parent) = &self.path.parent() {
-			let () = std::fs::create_dir_all(parent).map_err(Error::LoadIo)?;
+			() = std::fs::create_dir_all(parent).map_err(Error::LoadIo)?;
 		}
 
 		match std::fs::File::open(&self.path) {
@@ -48,13 +48,13 @@ impl Manager {
 
 	pub(crate) fn save(&mut self, state: &State) -> Result<(), Error> {
 		if let Some(parent) = &self.path.parent() {
-			let () = std::fs::create_dir_all(parent).map_err(Error::SaveIo)?;
+			() = std::fs::create_dir_all(parent).map_err(Error::SaveIo)?;
 		}
 
 		match std::fs::File::create(&self.path) {
 			Ok(mut file) => {
-				let () = serde_json::to_writer(&mut file, state).map_err(Error::SaveJson)?;
-				let () = std::io::Write::write_all(&mut file, b"\n").map_err(Error::SaveIo)?;
+				() = serde_json::to_writer(&mut file, state).map_err(Error::SaveJson)?;
+				() = std::io::Write::write_all(&mut file, b"\n").map_err(Error::SaveIo)?;
 				Ok(())
 			},
 			Err(err) => Err(Error::SaveIo(err)),

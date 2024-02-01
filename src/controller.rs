@@ -8,7 +8,7 @@ pub(crate) fn run(user_id: String) -> anyhow::Result<()> {
 		.build()?;
 	let local_set = tokio::task::LocalSet::new();
 
-	let () = local_set.block_on(&runtime, run_inner(user_id))?;
+	() = local_set.block_on(&runtime, run_inner(user_id))?;
 	Ok(())
 }
 
@@ -19,8 +19,8 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 	let mut stderr = std::io::stderr().lock();
 
-	let _ = write!(stdout, "\x1B]2;{user_id}\x1B\\");
-	let _ = stdout.flush();
+	_ = write!(stdout, "\x1B]2;{user_id}\x1B\\");
+	_ = stdout.flush();
 
 	let mut state_manager = crate::state::Manager::new(&user_id).context("could not create state manager")?;
 
@@ -116,7 +116,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 			};
 
 		let sync: SyncResponse = loop {
-			let _ = write!(stdout, "\rSyncing at {} ... ", chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
+			_ = write!(stdout, "\rSyncing at {} ... ", chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
 			stdout.flush()?;
 
 			let response =
@@ -129,32 +129,32 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 			let response = tokio::time::timeout(SYNC_TIMEOUT + std::time::Duration::from_secs(10), response);
 			match response.await {
 				Ok(Ok(crate::http_client::HomeserverResponse::Ok(response))) => {
-					let _ = write!(stdout, "\rSynced at {}      ", chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
+					_ = write!(stdout, "\rSynced at {}      ", chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false));
 					stdout.flush()?;
 					break response;
 				},
 
 				Ok(Ok(crate::http_client::HomeserverResponse::Err(err))) => {
-					let _ = writeln!(stderr, "\nSync error: {err:?}       ");
+					_ = writeln!(stderr, "\nSync error: {err:?}       ");
 
 					let mut state = state_manager.load().context("could not load state")?;
 					state.access_token = None;
-					let () = state_manager.save(&state).context("could not save state")?;
+					() = state_manager.save(&state).context("could not save state")?;
 
-					let _ = writeln!(stdout);
-					let _ = writeln!(stderr, "Reconnecting to homeserver...");
+					_ = writeln!(stdout);
+					_ = writeln!(stderr, "Reconnecting to homeserver...");
 					auth_header =
 						login(&client, &mut state_manager, &homeserver_base_url, &user_id, &mut stderr)
 						.await.context("could not log in")?;
 				},
 
 				Ok(Err(err)) => {
-					let _ = writeln!(stderr, "\nSync error: {err:?}       ");
+					_ = writeln!(stderr, "\nSync error: {err:?}       ");
 					tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 				},
 
 				Err(tokio::time::error::Elapsed { .. }) => {
-					let _ = writeln!(stderr, "timed out");
+					_ = writeln!(stderr, "timed out");
 				},
 			}
 		};
@@ -187,57 +187,53 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 					crate::AccountDataEvent::M_MegolmBackup_V1 { encrypted } =>
 						for (key_id, secret) in encrypted {
-							if let Some((_, key)) = keys.get(&key_id) {
-								let secret =
-									secret.into_aes_hmac_sha2()
-									.context("could not parse m.megolm_backup.v1 secret")?;
-								let key = secret.decrypt(key, "m.megolm_backup.v1").context("could not parse m.megolm_backup.v1 secret")?;
-								#[allow(unused)] // TODO
-								{
-									backup_key = Some(key);
-								}
+							let Some((_, key)) = keys.get(&key_id) else { continue; };
+							let secret =
+								secret.into_aes_hmac_sha2()
+								.context("could not parse m.megolm_backup.v1 secret")?;
+							let key = secret.decrypt(key, "m.megolm_backup.v1").context("could not parse m.megolm_backup.v1 secret")?;
+							#[allow(unused)] // TODO
+							{
+								backup_key = Some(key);
 							}
 						},
 
 					crate::AccountDataEvent::M_CrossSigning_Master { encrypted } =>
 						for (key_id, secret) in encrypted {
-							if let Some((_, key)) = keys.get(&key_id) {
-								let secret =
-									secret.into_aes_hmac_sha2()
-									.context("could not parse m.cross_signing.master secret")?;
-								let key = secret.decrypt(key, "m.cross_signing.master").context("could not parse m.cross_signing.master secret")?;
-								#[allow(unused)] // TODO
-								{
-									cross_signing_master_key = Some(key);
-								}
+							let Some((_, key)) = keys.get(&key_id) else { continue; };
+							let secret =
+								secret.into_aes_hmac_sha2()
+								.context("could not parse m.cross_signing.master secret")?;
+							let key = secret.decrypt(key, "m.cross_signing.master").context("could not parse m.cross_signing.master secret")?;
+							#[allow(unused)] // TODO
+							{
+								cross_signing_master_key = Some(key);
 							}
 						},
 
 					crate::AccountDataEvent::M_CrossSigning_SelfSigning { encrypted } =>
 						for (key_id, secret) in encrypted {
-							if let Some((_, key)) = keys.get(&key_id) {
-								let secret =
-									secret.into_aes_hmac_sha2()
-									.context("could not parse m.cross_signing.self_signing secret")?;
-								let key = secret.decrypt(key, "m.cross_signing.self_signing").context("could not parse m.cross_signing.self_signing secret")?;
-								#[allow(unused)] // TODO
-								{
-									cross_signing_self_signing_key = Some(key);
-								}
+							let Some((_, key)) = keys.get(&key_id) else { continue; };
+							let secret =
+								secret.into_aes_hmac_sha2()
+								.context("could not parse m.cross_signing.self_signing secret")?;
+							let key = secret.decrypt(key, "m.cross_signing.self_signing").context("could not parse m.cross_signing.self_signing secret")?;
+							#[allow(unused)] // TODO
+							{
+								cross_signing_self_signing_key = Some(key);
 							}
 						},
 
 					crate::AccountDataEvent::M_CrossSigning_UserSigning { encrypted } =>
 						for (key_id, secret) in encrypted {
-							if let Some((_, key)) = keys.get(&key_id) {
-								let secret =
-									secret.into_aes_hmac_sha2()
-									.context("could not parse m.cross_signing.user_signing secret")?;
-								let key = secret.decrypt(key, "m.cross_signing.user_signing").context("could not parse m.cross_signing.user_signing secret")?;
-								#[allow(unused)] // TODO
-								{
-									cross_signing_user_signing_key = Some(key);
-								}
+							let Some((_, key)) = keys.get(&key_id) else { continue; };
+							let secret =
+								secret.into_aes_hmac_sha2()
+								.context("could not parse m.cross_signing.user_signing secret")?;
+							let key = secret.decrypt(key, "m.cross_signing.user_signing").context("could not parse m.cross_signing.user_signing secret")?;
+							#[allow(unused)] // TODO
+							{
+								cross_signing_user_signing_key = Some(key);
 							}
 						},
 
@@ -320,7 +316,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 			};
 
 			for line in lines {
-				let () = serde_json::to_writer(&mut *f, &line).context("could not write view line")?;
+				() = serde_json::to_writer(&mut *f, &line).context("could not write view line")?;
 				f.flush().context("could not write view line")?;
 			}
 		}
@@ -467,14 +463,14 @@ async fn login(
 					crate::http_client::HomeserverResponse::Ok(LoginResponse { access_token }) => break access_token,
 
 					crate::http_client::HomeserverResponse::Err(err) => {
-						let _ = writeln!(stderr, "{err}");
+						_ = writeln!(stderr, "{err}");
 					},
 				}
 			};
 
 			state.access_token = Some(access_token.clone());
 
-			let () = state_manager.save(&state).context("could not save state")?;
+			() = state_manager.save(&state).context("could not save state")?;
 
 			access_token
 		};

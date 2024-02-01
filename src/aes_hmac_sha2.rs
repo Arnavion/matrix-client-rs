@@ -113,7 +113,7 @@ pub(crate) fn encrypt(
 ) -> Result<hmac::digest::CtOutput<hmac::Hmac<sha2::Sha256>>, ctr::cipher::StreamCipherError> {
 	let (mut stream_cipher, mut mac) = expand_key(key, secret_name, iv);
 
-	let () = ctr::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, stream)?;
+	() = ctr::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, stream)?;
 
 	hmac::Mac::update(&mut mac, stream);
 	let mac = hmac::Mac::finalize(mac);
@@ -141,7 +141,7 @@ impl crate::AesHmacSha2Secret {
 		}
 
 		let mut stream = ciphertext;
-		let () = aes::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, &mut stream).map_err(DecryptError::Decrypt)?;
+		() = aes::cipher::StreamCipher::try_apply_keystream(&mut stream_cipher, &mut stream).map_err(DecryptError::Decrypt)?;
 
 		let plaintext = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &stream).map_err(DecryptError::MalformedPlaintextBase64)?;
 
@@ -167,7 +167,7 @@ fn expand_key(
 	iv: &[u8; 16],
 ) -> (ctr::Ctr64BE<aes::Aes256>, hmac::Hmac<sha2::Sha256>) {
 	let mut okm = [0_u8; 64];
-	let () = key.expand(secret_name.as_bytes(), &mut okm).expect("output length is statically correct");
+	() = key.expand(secret_name.as_bytes(), &mut okm).expect("output length is statically correct");
 	let stream_cipher = ctr::cipher::KeyIvInit::new(okm[..32].into(), iv.into());
 	let mac = hmac::Mac::new_from_slice(&okm[32..]).expect("Hmac::new_from_slice accepts any key length");
 	(stream_cipher, mac)
