@@ -5,6 +5,7 @@ TUI [Matrix](https://matrix.org/) client in Rust.
 
 - `tmux` windows for rooms.
 - Read-only.
+- No E2EE support. Use something like [pantalaimon.](https://github.com/matrix-org/pantalaimon)
 
 
 # Dependencies
@@ -31,6 +32,14 @@ TUI [Matrix](https://matrix.org/) client in Rust.
 
    ```sh
    ./target/release/matrix-client '@arnavion:arnavion.dev'
+   ```
+
+   If you want to use a proxy like [pantalaimon](https://github.com/matrix-org/pantalaimon) intead of connecting directly to the homeserver, set the `MATRIX_HOMESERVER_BASE_URL` env var.
+
+   Example:
+
+   ```sh
+   MATRIX_HOMESERVER_BASE_URL='http://[::1]:8009' ./target/release/matrix-client '@arnavion:arnavion.dev'
    ```
 
 1. Import E2E keys backup from Element:

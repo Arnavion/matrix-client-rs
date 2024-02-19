@@ -45,24 +45,11 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 	let mut sync_next_batch = None;
 
-	let mut keys: std::collections::BTreeMap<String, (Option<String>, hkdf::Hkdf<sha2::Sha256>)> = Default::default();
-	#[allow(unused)] // TODO
-	let mut default_key_id = None;
-	#[allow(unused)] // TODO
-	let mut backup_key = None;
-	#[allow(unused)] // TODO
-	let mut cross_signing_master_key = None;
-	#[allow(unused)] // TODO
-	let mut cross_signing_self_signing_key = None;
-	#[allow(unused)] // TODO
-	let mut cross_signing_user_signing_key = None;
-
 	let mut view_fds: std::collections::BTreeMap<String, std::fs::File> = Default::default();
 
 	loop {
 		#[derive(serde::Deserialize)]
 		struct SyncResponse {
-			account_data: Option<crate::SyncResponse_AccountData>,
 			next_batch: String,
 			rooms: Option<SyncResponse_Rooms>,
 		}
@@ -79,7 +66,6 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 		#[allow(non_camel_case_types)]
 		#[derive(serde::Deserialize)]
 		struct SyncResponse_JoinedRoom {
-			account_data: crate::SyncResponse_AccountData,
 			state: SyncResponse_RoomState,
 			summary: crate::SyncResponse_RoomSummary,
 			timeline: SyncResponse_RoomTimeline,
@@ -88,7 +74,6 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 		#[allow(non_camel_case_types)]
 		#[derive(serde::Deserialize)]
 		struct SyncResponse_LeftRoom {
-			account_data: crate::SyncResponse_AccountData,
 			state: SyncResponse_RoomState,
 			timeline: SyncResponse_RoomTimeline,
 		}
@@ -166,87 +151,6 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 		sync_next_batch = Some(sync.next_batch);
 
-		if let Some(account_data) = sync.account_data {
-			for crate::SyncResponse_AccountData_Event { r#type, content } in account_data.events {
-				let event = crate::AccountDataEvent::parse(r#type, content).context("could not parse event")?;
-				match event {
-					crate::AccountDataEvent::M_SecretStorage_DefaultKey { key } => {
-						#[allow(unused)] // TODO
-						{
-							default_key_id = Some(key);
-						}
-					},
-
-					crate::AccountDataEvent::M_SecretStorage_Key { id, description } => {
-						let mut state = state_manager.load().context("could not load state")?;
-
-						if let Some(secret_storage_key) = state.secret_storage_keys.remove(&id) {
-							let (name, key) = match secret_storage_key.derive(description) {
-								Ok(key) => key,
-								Err(crate::aes_hmac_sha2::DeriveKeyError::PassphraseParametersNotProvided) => continue,
-								Err(err) => Err(err).context("could not derive secret storage key")?,
-							};
-							keys.insert(id, (name, key));
-						}
-					},
-
-					crate::AccountDataEvent::M_MegolmBackup_V1 { encrypted } =>
-						for (key_id, secret) in encrypted {
-							let Some((_, key)) = keys.get(&key_id) else { continue; };
-							let secret =
-								secret.into_aes_hmac_sha2()
-								.context("could not parse m.megolm_backup.v1 secret")?;
-							let key = secret.decrypt(key, "m.megolm_backup.v1").context("could not parse m.megolm_backup.v1 secret")?;
-							#[allow(unused)] // TODO
-							{
-								backup_key = Some(key);
-							}
-						},
-
-					crate::AccountDataEvent::M_CrossSigning_Master { encrypted } =>
-						for (key_id, secret) in encrypted {
-							let Some((_, key)) = keys.get(&key_id) else { continue; };
-							let secret =
-								secret.into_aes_hmac_sha2()
-								.context("could not parse m.cross_signing.master secret")?;
-							let key = secret.decrypt(key, "m.cross_signing.master").context("could not parse m.cross_signing.master secret")?;
-							#[allow(unused)] // TODO
-							{
-								cross_signing_master_key = Some(key);
-							}
-						},
-
-					crate::AccountDataEvent::M_CrossSigning_SelfSigning { encrypted } =>
-						for (key_id, secret) in encrypted {
-							let Some((_, key)) = keys.get(&key_id) else { continue; };
-							let secret =
-								secret.into_aes_hmac_sha2()
-								.context("could not parse m.cross_signing.self_signing secret")?;
-							let key = secret.decrypt(key, "m.cross_signing.self_signing").context("could not parse m.cross_signing.self_signing secret")?;
-							#[allow(unused)] // TODO
-							{
-								cross_signing_self_signing_key = Some(key);
-							}
-						},
-
-					crate::AccountDataEvent::M_CrossSigning_UserSigning { encrypted } =>
-						for (key_id, secret) in encrypted {
-							let Some((_, key)) = keys.get(&key_id) else { continue; };
-							let secret =
-								secret.into_aes_hmac_sha2()
-								.context("could not parse m.cross_signing.user_signing secret")?;
-							let key = secret.decrypt(key, "m.cross_signing.user_signing").context("could not parse m.cross_signing.user_signing secret")?;
-							#[allow(unused)] // TODO
-							{
-								cross_signing_user_signing_key = Some(key);
-							}
-						},
-
-					crate::AccountDataEvent::Unknown { r#type: _, content: _ } => (),
-				}
-			}
-		}
-
 		let mut to_write: std::collections::BTreeMap<String, Vec<crate::RoomViewLine>> = Default::default();
 
 		if let Some(rooms) = sync.rooms {
@@ -254,7 +158,6 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 				let lines = to_write.entry(room_id).or_default();
 
 				lines.push(crate::RoomViewLine::Summary { summary: room.summary });
-				lines.push(crate::RoomViewLine::AccountData { account_data: room.account_data });
 
 				for event in room.state.events {
 					lines.push(crate::RoomViewLine::State { event });
@@ -267,8 +170,6 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 			for (room_id, room) in rooms.leave {
 				let lines = to_write.entry(room_id).or_default();
-
-				lines.push(crate::RoomViewLine::AccountData { account_data: room.account_data });
 
 				for event in room.state.events {
 					lines.push(crate::RoomViewLine::State { event });
@@ -361,6 +262,8 @@ async fn get_homeserver_base_url(client: &crate::http_client::Client, user_id: &
 			homeserver_base_url
 		};
 
+	// TODO: pantalaimon doesn't support this until after the first login, because it doesn't have a default implementation.
+	// Should this be made optional?
 	let ClientVersions { versions } =
 		client.request(&homeserver_base_url, "/_matrix/client/versions", None, crate::http_client::RequestMethod::Get::<()>)
 		.await.context("could not get client versions supported by homeserver")?
@@ -419,6 +322,8 @@ async fn login(
 				access_token: String,
 			}
 
+			// TODO: pantalaimon doesn't support this until after the first login, because it doesn't have a default implementation.
+			// Should this be made optional?
 			let SupportedLoginTypesResponse { flows } =
 				client.request(homeserver_base_url, "/_matrix/client/v3/login", None, crate::http_client::RequestMethod::Get::<()>)
 				.await.context("could not get supported login types")?

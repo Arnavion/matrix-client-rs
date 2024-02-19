@@ -8,14 +8,7 @@ publish = false
 
 
 [dependencies]
-aes = { version = "0.8", default-features = false }
 anyhow = { version = "1.0.14", default-features = false, features = [
-	"std",
-] }
-base64 = { version = "0.21", default-features = false, features = [
-	"std",
-] }
-bs58 = { version = "0.5", default-features = false, features = [
 	"std",
 ] }
 chrono = { version = "0.4.20", default-features = false, features = [
@@ -26,12 +19,7 @@ clap = { version = "4", default-features = false, features = [
 	"derive", # for #[derive(clap::Parser)]
 	"std", # "`std` feature is currently required to build `clap`"
 ] }
-ctr = { version = "0.9", default-features = false }
 dirs = { version = "5", default-features = false }
-hkdf = { version = "0.12", default-features = false }
-hmac = { version = "0.12", default-features = false, features = [
-	"std",
-] }
 http = { version = "1", default-features = false }
 http-body-util = { version = "0.1", default-features = false }
 hyper = { version = "1", default-features = false }
@@ -51,12 +39,6 @@ nix = { version = "0.27", default-features = false, features = [
 	"fs", # for nix::sys::stat, nix::unistd::mkfifo
 	"hostname", # for nix::unistd::gethostname
 	"process", # for nix::unistd::Pid
-] }
-pbkdf2 = { version = "0.12", default-features = false, features = [
-	"hmac", # for pbkdf2::pbkdf2_hmac_array
-] }
-pem = { version = "3", default-features = false, features = [
-	"std", # for pem::PemError: std::error::Error
 ] }
 rpassword = { version = "7", default-features = false }
 serde = { version = "1.0.103", default-features = false, features = [

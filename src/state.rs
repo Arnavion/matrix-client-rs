@@ -66,41 +66,5 @@ impl Manager {
 pub(crate) struct State {
 	pub(crate) access_token: Option<String>,
 
-	#[serde(default)]
-	pub(crate) e2e_keys: std::collections::BTreeMap<String, std::collections::BTreeMap<String, SessionData>>,
-
-	#[serde(default)]
-	pub(crate) secret_storage_keys: std::collections::BTreeMap<String, SecretStorageKey>,
-
 	pub(crate) tmux_conf: Option<std::path::PathBuf>,
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-#[serde(tag = "algorithm")]
-pub(crate) enum SessionData {
-	#[serde(rename = "m.megolm.v1.aes-sha2")]
-	MegolmV1AesSha2 {
-		forwarding_curve25519_key_chain: Vec<String>,
-		sender_key: String,
-		sender_claimed_keys: SessionData_MegolmV1AesSha2_SenderClaimedKeys,
-		session_key: String,
-	},
-
-	#[serde(other)]
-	Other,
-}
-
-#[allow(non_camel_case_types)]
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub(crate) struct SessionData_MegolmV1AesSha2_SenderClaimedKeys {
-	ed25519: String,
-}
-
-#[derive(serde::Deserialize, serde::Serialize)]
-pub(crate) enum SecretStorageKey {
-	#[serde(rename = "passphrase")]
-	Passphrase(String),
-
-	#[serde(rename = "keyfile")]
-	Keyfile(String),
 }
