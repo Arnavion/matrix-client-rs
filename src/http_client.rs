@@ -75,8 +75,9 @@ impl Client {
 			}
 			else {
 				let content_type = headers.remove(http::header::CONTENT_TYPE);
+				let content_type = content_type.as_ref();
 				#[allow(clippy::borrow_interior_mutable_const)]
-				if content_type.as_ref() != Some(&APPLICATION_JSON) {
+				if content_type != Some(&APPLICATION_JSON) && content_type != Some(&APPLICATION_JSON_CHARSET_UTF8) {
 					return Err(anyhow::anyhow!("could not execute request: unexpected content-type {content_type:?}"));
 				}
 				let body = http_body_util::BodyExt::collect(body).await.context("could not execute request: could not read response body")?.aggregate();
@@ -159,3 +160,6 @@ impl<TResponse> HomeserverResponse<TResponse> {
 
 #[allow(clippy::declare_interior_mutable_const)]
 const APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
+
+#[allow(clippy::declare_interior_mutable_const)]
+const APPLICATION_JSON_CHARSET_UTF8: http::HeaderValue = http::HeaderValue::from_static("application/json; charset=utf-8");
