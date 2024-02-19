@@ -346,13 +346,20 @@ async fn get_homeserver_base_url(client: &crate::http_client::Client, user_id: &
 		versions: Vec<String>,
 	}
 
-	let (_, homeserver_name) = user_id.split_once(':').context("could not extract homeserver name from user ID")?;
+	let homeserver_base_url =
+		if let Ok(homeserver_base_url) = std::env::var("MATRIX_HOMESERVER_BASE_URL") {
+			homeserver_base_url
+		}
+		else {
+			let (_, homeserver_name) = user_id.split_once(':').context("could not extract homeserver name from user ID")?;
 
-	let ClientDiscoveryInfoResponse { m_homeserver: ClientDiscoveryInfoResponse_MHomeserver { base_url: homeserver_base_url } } =
-		client.request(&format!("https://{homeserver_name}"), "/.well-known/matrix/client", None, crate::http_client::RequestMethod::Get::<()>)
-		.await.context("could not get client discovery info")?
-		.into_result()
-		.context("could not get client discovery info")?;
+			let ClientDiscoveryInfoResponse { m_homeserver: ClientDiscoveryInfoResponse_MHomeserver { base_url: homeserver_base_url } } =
+				client.request(&format!("https://{homeserver_name}"), "/.well-known/matrix/client", None, crate::http_client::RequestMethod::Get::<()>)
+				.await.context("could not get client discovery info")?
+				.into_result()
+				.context("could not get client discovery info")?;
+			homeserver_base_url
+		};
 
 	let ClientVersions { versions } =
 		client.request(&homeserver_base_url, "/_matrix/client/versions", None, crate::http_client::RequestMethod::Get::<()>)

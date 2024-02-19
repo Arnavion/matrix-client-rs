@@ -66,6 +66,9 @@ fn main() -> anyhow::Result<()> {
 			if let Ok(value) = std::env::var("DEBUG") {
 				controller.args(["-e", &format!("DEBUG={value}")]);
 			}
+			if let Ok(value) = std::env::var("MATRIX_HOMESERVER_BASE_URL") {
+				controller.args(["-e", &format!("MATRIX_HOMESERVER_BASE_URL={value}")]);
+			}
 			controller.arg(arg0);
 			controller.args([&user_id, "_controller"]);
 			let err = std::os::unix::process::CommandExt::exec(&mut controller);
