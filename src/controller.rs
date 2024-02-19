@@ -110,14 +110,14 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 		let path =
 			if let Some(sync_next_batch) = sync_next_batch.as_deref() {
 				format!(
-					"/_matrix/client/r0/sync?filter={}&since={}&timeout={}",
+					"/_matrix/client/v3/sync?filter={}&since={}&timeout={}",
 					PercentEncode(&sync_filter_id),
 					PercentEncode(sync_next_batch),
 					SYNC_TIMEOUT.as_millis(),
 				)
 			}
 			else {
-				format!("/_matrix/client/r0/sync?filter={}", PercentEncode(&sync_filter_id))
+				format!("/_matrix/client/v3/sync?filter={}", PercentEncode(&sync_filter_id))
 			};
 
 		let sync: SyncResponse = loop {
@@ -359,8 +359,8 @@ async fn get_homeserver_base_url(client: &crate::http_client::Client, user_id: &
 		.await.context("could not get client versions supported by homeserver")?
 		.into_result()
 		.context("could not get client versions supported by homeserver")?;
-	if !versions.into_iter().any(|version| version == "r0.6.0") {
-		return Err(anyhow::anyhow!("homeserver does not support client version r0.6.0"));
+	if !versions.into_iter().any(|version| version == "v1.9") {
+		return Err(anyhow::anyhow!("homeserver does not support client version v1.9"));
 	}
 
 	Ok(homeserver_base_url)
@@ -413,7 +413,7 @@ async fn login(
 			}
 
 			let SupportedLoginTypesResponse { flows } =
-				client.request(homeserver_base_url, "/_matrix/client/r0/login", None, crate::http_client::RequestMethod::Get::<()>)
+				client.request(homeserver_base_url, "/_matrix/client/v3/login", None, crate::http_client::RequestMethod::Get::<()>)
 				.await.context("could not get supported login types")?
 				.into_result()
 				.context("could not get supported login types")?;
@@ -454,7 +454,7 @@ async fn login(
 				let password = rpassword::prompt_password("Enter password: ").context("could not read password")?;
 
 				let login_response =
-					client.request(homeserver_base_url, "/_matrix/client/r0/login", None, crate::http_client::RequestMethod::Post(LoginRequest {
+					client.request(homeserver_base_url, "/_matrix/client/v3/login", None, crate::http_client::RequestMethod::Post(LoginRequest {
 						r#type: "m.login.password",
 						identifier: LoginRequest_Identifier {
 							r#type: "m.id.user",
@@ -533,7 +533,7 @@ async fn create_sync_filter(
 	let CreateFilterResponse { filter_id } =
 		client.request(
 			homeserver_base_url,
-			&format!("/_matrix/client/r0/user/{}/filter", PercentEncode(user_id)),
+			&format!("/_matrix/client/v3/user/{}/filter", PercentEncode(user_id)),
 			Some(auth_header),
 			crate::http_client::RequestMethod::Post(CreateFilterRequest {
 				presence: CreateFilterRequest_EventFilter {
