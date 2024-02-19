@@ -73,7 +73,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 			.context("could not read line from lines file")?
 			.context("could not read line from lines file")?;
 
-		if std::env::var_os("DEBUG").is_some() {
+		if std::env::var("DEBUG").as_deref() == Ok("1") {
 			_ = writeln!(stderr, "{line:?}");
 		}
 

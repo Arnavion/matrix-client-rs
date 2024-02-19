@@ -63,8 +63,8 @@ fn main() -> anyhow::Result<()> {
 
 			let mut controller = tmux(&user_id)?;
 			controller.args(["new-session", "-s", "matrix-client", "-n", &user_id]);
-			if std::env::var_os("DEBUG").is_some() {
-				controller.args(["-e", "DEBUG=1"]);
+			if let Ok(value) = std::env::var("DEBUG") {
+				controller.args(["-e", &format!("DEBUG={value}")]);
 			}
 			controller.arg(arg0);
 			controller.args([&user_id, "_controller"]);

@@ -304,8 +304,8 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 					let mut view = crate::tmux(&user_id)?;
 					view.args(["new-window", "-d"]);
-					if std::env::var_os("DEBUG").is_some() {
-						view.args(["-e", "DEBUG=1"]);
+					if let Ok(value) = std::env::var("DEBUG") {
+						view.args(["-e", &format!("DEBUG={value}")]);
 					}
 					view.arg(arg0);
 					view.args([&user_id, "_view", entry.key()]);
