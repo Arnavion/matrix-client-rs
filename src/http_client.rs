@@ -56,7 +56,7 @@ impl Client {
 				req.headers_mut().append(http::header::AUTHORIZATION, auth_header);
 			}
 
-			req.headers_mut().insert(http::header::ACCEPT, application_json().clone());
+			req.headers_mut().insert(http::header::ACCEPT, APPLICATION_JSON);
 			req.headers_mut().insert(http::header::USER_AGENT, client.user_agent.clone());
 
 			let res = client.inner.request(req).await.context("could not execute request")?;
@@ -75,7 +75,8 @@ impl Client {
 			}
 			else {
 				let content_type = headers.remove(http::header::CONTENT_TYPE);
-				if content_type.as_ref() != Some(application_json()) {
+				#[allow(clippy::borrow_interior_mutable_const)]
+				if content_type.as_ref() != Some(&APPLICATION_JSON) {
 					return Err(anyhow::anyhow!("could not execute request: unexpected content-type {content_type:?}"));
 				}
 				let body = http_body_util::BodyExt::collect(body).await.context("could not execute request: could not read response body")?.aggregate();
@@ -100,7 +101,7 @@ impl Client {
 					let body = serde_json::to_vec(&body).context("could not request")?;
 					let mut req = http::Request::new(body);
 					*req.method_mut() = http::Method::POST;
-					req.headers_mut().append(http::header::CONTENT_TYPE, application_json().clone());
+					req.headers_mut().append(http::header::CONTENT_TYPE, APPLICATION_JSON);
 					req
 				},
 			};
@@ -123,7 +124,7 @@ impl Client {
 					method = RequestMethod::Get;
 				},
 
-				Response::Redirect(_) => 
+				Response::Redirect(_) =>
 					return Err(anyhow::anyhow!("could not execute request: unredirectable request got redirect response")),
 			}
 		}
@@ -156,8 +157,5 @@ impl<TResponse> HomeserverResponse<TResponse> {
 	}
 }
 
-fn application_json() -> &'static http::HeaderValue {
-	static VALUE: std::sync::OnceLock<http::HeaderValue> = std::sync::OnceLock::new();
-
-	VALUE.get_or_init(|| http::HeaderValue::from_static("application/json"))
-}
+#[allow(clippy::declare_interior_mutable_const)]
+const APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
