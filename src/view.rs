@@ -185,6 +185,15 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 				),
 
 			crate::Event::M_Room_Message(content) => match content {
+				crate::Event_M_Room_Message_Content::Emote(crate::Event_M_Room_Message_Content_Emote { body }) => {
+					write_with_sender(
+						&mut stdout, &sender, &user_power_levels, user_power_level_default,
+						SenderDecoration::Emote,
+						format_args!(""),
+					);
+					print_multiline(&mut stdout, &body);
+				},
+
 				crate::Event_M_Room_Message_Content::File(crate::Event_M_Room_Message_Content_File { body, url }) =>
 					write_with_sender(
 						&mut stdout, &sender, &user_power_levels, user_power_level_default,
@@ -323,6 +332,7 @@ fn print_multiline(stdout: &mut impl std::io::Write, s: &str) {
 
 #[derive(Clone, Copy)]
 enum SenderDecoration {
+	Emote,
 	Event,
 	Message,
 }
@@ -336,6 +346,7 @@ fn write_with_sender(
 	rest: std::fmt::Arguments<'_>,
 ) {
 	let (decoration_start, decoration_end) = match decoration {
+		SenderDecoration::Emote => ("<", "> /me"),
 		SenderDecoration::Event => ("", ""),
 		SenderDecoration::Message => ("<", ">"),
 	};
