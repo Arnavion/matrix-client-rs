@@ -42,12 +42,6 @@ TUI [Matrix](https://matrix.org/) client in Rust.
    MATRIX_HOMESERVER_BASE_URL='http://[::1]:8009' ./target/release/matrix-client '@arnavion:arnavion.dev'
    ```
 
-1. Import E2E keys backup from Element:
-
-   ```sh
-   ./target/release/matrix-client <user_id> config import-e2e-keys-backup ~/Downloads/element.keys.txt
-   ```
-
 
 # TODO
 
