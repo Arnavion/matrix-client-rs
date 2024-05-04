@@ -34,7 +34,7 @@ TUI [Matrix](https://matrix.org/) client in Rust.
    ./target/release/matrix-client '@arnavion:arnavion.dev'
    ```
 
-   If you want to use a proxy like [pantalaimon](https://github.com/matrix-org/pantalaimon) intead of connecting directly to the homeserver, set the `MATRIX_HOMESERVER_BASE_URL` env var.
+   If you want to use a proxy like [pantalaimon](https://github.com/matrix-org/pantalaimon) instead of connecting directly to the homeserver, set the `MATRIX_HOMESERVER_BASE_URL` env var.
 
    Example:
 
