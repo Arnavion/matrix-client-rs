@@ -63,7 +63,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 			rename_command.args(["rename-window", "-t"]);
 			rename_command.arg(&tmux_pane);
 			// Replace `#` with `##` because tmux has special handling for some sequences like `#T`
-			rename_command.arg(&room_display_name.replace('#', "##"));
+			rename_command.arg(room_display_name.replace('#', "##"));
 			_ = rename_command.output().context("could not rename tmux window to new room display name")?;
 
 			room_display_name_changed = false;
