@@ -15,3 +15,4 @@ print:
 test:
 	cargo test --workspace
 	cargo clippy --workspace --tests --examples
+	cargo machete
