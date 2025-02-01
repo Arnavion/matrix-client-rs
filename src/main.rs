@@ -222,7 +222,7 @@ macro_rules! define_events {
 define_events! {
 	"m.room.canonical_alias" => M_Room_CanonicalAlias { alias: Option<String> },
 	"m.room.create" => M_Room_Create { room_version: Option<String> },
-	"m.room.encrypted" => M_Room_Encrypted { algorithm: String, ciphertext: String, device_id: String, sender_key: String, session_id: String },
+	"m.room.encrypted" => M_Room_Encrypted { algorithm: Option<String>, ciphertext: Option<String>, device_id: Option<String>, sender_key: Option<String>, session_id: Option<String> },
 	"m.room.encryption" => M_Room_Encryption { algorithm: String },
 	"m.room.guest_access" => M_Room_GuestAccess { guest_access: String },
 	"m.room.history_visibility" => M_Room_HistoryVisibility { history_visibility: String },

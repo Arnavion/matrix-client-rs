@@ -153,7 +153,7 @@ pub(crate) fn run(user_id: &str, room_id: &str, lines: &std::path::Path) -> anyh
 				write_with_sender(
 					&mut stdout, &sender, &user_power_levels, user_power_level_default,
 					SenderDecoration::Message,
-					format_args!("[encrypted message] {algorithm} {session_id} {sender_key} {device_id} {ciphertext}\n"),
+					format_args!("[encrypted message] {algorithm:?} {session_id:?} {sender_key:?} {device_id:?} {ciphertext:?}\n"),
 				),
 
 			crate::Event::M_Room_Encryption { algorithm } =>
