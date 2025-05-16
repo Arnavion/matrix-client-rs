@@ -45,7 +45,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 
 	let mut sync_next_batch = None;
 
-	let mut view_fds: std::collections::BTreeMap<String, std::fs::File> = Default::default();
+	let mut view_fds: std::collections::BTreeMap<String, std::io::PipeWriter> = Default::default();
 
 	loop {
 		#[derive(serde::Deserialize)]
@@ -184,21 +184,9 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 		for (room_id, lines) in to_write {
 			let f = match view_fds.entry(room_id) {
 				std::collections::btree_map::Entry::Vacant(entry) => {
-					let tempdir =
-						tempfile::tempdir()
-						.with_context(|| format!("could not create view fd for {}", entry.key()))?;
-					let fifo_path = tempdir.path().join("lines");
-					let () =
-						nix::unistd::mkfifo(&fifo_path, nix::sys::stat::Mode::S_IRUSR | nix::sys::stat::Mode::S_IWUSR)
-						.with_context(|| format!("could not create view fd for {}", entry.key()))?;
-					let fifo =
-						std::fs::OpenOptions::new()
-						.read(true)
-						.write(true)
-						.open(fifo_path)
-						.with_context(|| format!("could not create view fd for {}", entry.key()))?;
-					drop(tempdir);
-					let view_fd = std::os::fd::AsRawFd::as_raw_fd(&fifo);
+					let (reader, writer) = std::io::pipe().with_context(|| format!("could not create pipe for {}", entry.key()))?;
+
+					let view_fd = std::os::fd::IntoRawFd::into_raw_fd(reader);
 
 					let mut args = std::env::args_os();
 					let arg0 = args.next().context("argv[0] is not set")?;
@@ -215,7 +203,7 @@ async fn run_inner(user_id: String) -> anyhow::Result<()> {
 						view.output()
 						.with_context(|| format!("could not create view for {}", entry.key()))?;
 
-					entry.insert(fifo)
+					entry.insert(writer)
 				},
 
 				std::collections::btree_map::Entry::Occupied(entry) => entry.into_mut(),
