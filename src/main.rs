@@ -156,6 +156,9 @@ macro_rules! define_events {
 		enum Event {
 			$($ident { $($field_name : $field_ty ,)* },)*
 
+			#[allow(dead_code)]
+			M_Reaction { relates_to: Event_M_Reaction_RelatesTo },
+
 			M_Room_Message(Event_M_Room_Message_Content),
 
 			Unknown {
@@ -182,6 +185,17 @@ macro_rules! define_events {
 							Event::$ident { $($field_name),* }
 						},
 					)*
+
+					"m.reaction" => {
+						#[derive(serde::Deserialize)]
+						struct Content {
+							#[serde(rename = "m.relates_to")]
+							relates_to: Event_M_Reaction_RelatesTo
+						}
+
+						let Content { relates_to } = serde::Deserialize::deserialize(serde_json::Value::Object(content))?;
+						Event::M_Reaction { relates_to }
+					},
 
 					"m.room.message" => {
 						let msgtype = content.remove("msgtype");
@@ -232,6 +246,12 @@ define_events! {
 	"m.room.related_groups" => M_Room_RelatedGroups { groups: Vec<String> },
 	"m.room.tombstone" => M_Room_Tombstone { body: String, replacement_room: String },
 	"m.room.topic" => M_Room_Topic { topic: String },
+}
+
+#[allow(non_camel_case_types, dead_code)]
+#[derive(serde::Deserialize)]
+struct Event_M_Reaction_RelatesTo {
+	key: String,
 }
 
 #[allow(non_camel_case_types)]
